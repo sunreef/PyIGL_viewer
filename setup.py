@@ -13,6 +13,8 @@ setup(name='IGL_viewer',
       author_email='covictor@inf.ethz.ch',
       packages=find_packages(),
       install_requires=[
+          "PyOpenGL", 
+          "glfw",
       ],
       include_package_data=True,
       zip_safe=False)
