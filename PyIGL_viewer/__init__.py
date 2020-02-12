@@ -6,6 +6,7 @@ if __name__ == "__main__":
     from PyQt5.QtWidgets import QOpenGLWidget, QApplication
     app = QApplication([])
     widget = ViewerWidget()
+    widget.show()
 
     vertices = np.array([[0,1,0.0],[1, 0, 0.0],[0, 0, 0.0]], dtype='f')
     normals = np.array([[0,0,1],[0, 0, 1],[0, 0, 1]], dtype='f')
@@ -19,7 +20,6 @@ if __name__ == "__main__":
     indices = np.array([[0,1,2]], dtype=np.int32)
     widget.add_mesh(vertices, indices, normals=normals, texture_coords=tex_coords)
 
-    widget.show()
     sys.exit(app.exec())
 
 

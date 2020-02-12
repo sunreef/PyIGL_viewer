@@ -22,6 +22,8 @@ class ViewerWidget(QOpenGLWidget):
         self.shaders = {}
 
         # Mesh attributes
+        self.number_vertices = []
+        self.number_elements = []
         self.vertex_buffers = []
         self.normal_buffers = []
         self.texture_buffers = []
@@ -48,12 +50,14 @@ class ViewerWidget(QOpenGLWidget):
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         view_matrix = self.camera.get_view_matrix()
         projection_matrix = self.camera.get_projection_matrix()
-        for (vertex_buffer, normal_buffer, texture_buffer, element_buffer, shader_name) in zip(
+        for (vertex_buffer, normal_buffer, texture_buffer, element_buffer, shader_name, n_vertices, n_elements) in zip(
                 self.vertex_buffers, 
                 self.normal_buffers, 
                 self.texture_buffers, 
                 self.element_buffers,
-                self.shader_names):
+                self.shader_names,
+                self.number_vertices,
+                self.number_elements):
             shader_program = self.shaders[shader_name].program
             gl.glUseProgram(shader_program)
 
@@ -78,8 +82,9 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glEnableVertexAttribArray(2)
                 texture_buffer.bind()
                 gl.glVertexAttribPointer(2, 2, gl.GL_FLOAT, False, 0, None)
+
             element_buffer.bind()
-            gl.glDrawElements(gl.GL_TRIANGLES, 3, gl.GL_UNSIGNED_INT, None)
+            gl.glDrawElements(gl.GL_TRIANGLES, 3 * n_elements, gl.GL_UNSIGNED_INT, None)
 
             gl.glDisableVertexAttribArray(0)
             gl.glDisableVertexAttribArray(1)
@@ -111,6 +116,8 @@ class ViewerWidget(QOpenGLWidget):
             self.update()
 
     def add_mesh(self, vertices, faces, normals=None, texture_coords=None):
+        self.number_vertices.append(vertices.shape[0])
+        self.number_elements.append(faces.shape[0])
         self.vertex_buffers.append(gl.arrays.vbo.VBO(vertices))
         self.element_buffers.append(gl.arrays.vbo.VBO(faces, target=gl.GL_ELEMENT_ARRAY_BUFFER))
         if normals is not None:
@@ -122,7 +129,13 @@ class ViewerWidget(QOpenGLWidget):
         else:
             self.texture_buffers.append(None)
         self.shader_names.append('default')
+        self.update()
         return len(self.vertex_buffers) - 1
+
+    def update_mesh(self, index, vertices, normals=None, texture_coords=None):
+        self.vertex_buffers[index].set_array(vertices)
+        self.update()
+
 
 
 
