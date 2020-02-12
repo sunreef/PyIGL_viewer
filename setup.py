@@ -14,7 +14,7 @@ setup(name='IGL_viewer',
       packages=find_packages(),
       install_requires=[
           "PyOpenGL", 
-          "glfw",
+          "PyQt5"
       ],
       include_package_data=True,
       zip_safe=False)
