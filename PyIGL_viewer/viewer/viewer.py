@@ -4,13 +4,12 @@ import math
 import threading
 import numpy as np
 from OpenGL import GL as gl
-from PyQt5.QtWidgets import QOpenGLWidget, QApplication
+from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt
 
-from shader import ShaderProgram
-from mouse import MouseHandler
-from camera import Camera
-from projection import perspective, lookat, normalize, rotate
+from .shader import ShaderProgram
+from .mouse import MouseHandler
+from .camera import Camera
 
 class ViewerWidget(QOpenGLWidget):
     def __init__(self):
@@ -34,8 +33,9 @@ class ViewerWidget(QOpenGLWidget):
         self.setMouseTracking(True)
 
     def add_default_shader(self):       
-        self.shaders['default'] = ShaderProgram(os.path.join("shaders", "default_vertex_shader.vert"),
-            os.path.join("shaders", "default_fragment_shader.frag"))
+        current_file_path = os.path.dirname(os.path.abspath(__file__))
+        self.shaders['default'] = ShaderProgram(os.path.join(current_file_path, "..", "shaders", "default_vertex_shader.vert"),
+            os.path.join(current_file_path, "..", "shaders", "default_fragment_shader.frag"))
 
     def initializeGL(self):
         gl.glEnable(gl.GL_DEPTH_TEST)
@@ -123,26 +123,6 @@ class ViewerWidget(QOpenGLWidget):
             self.texture_buffers.append(None)
         self.shader_names.append('default')
         return len(self.vertex_buffers) - 1
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-    widget = ViewerWidget()
-
-    vertices = np.array([[0,1,0.0],[1, 0, 0.0],[0, 0, 0.0]], dtype='f')
-    normals = np.array([[0,0,1],[0, 0, 1],[0, 0, 1]], dtype='f')
-    tex_coords = np.array([[0,0],[1, 1],[0, 1]], dtype='f')
-    indices = np.array([[0,1,2]], dtype=np.int32)
-    widget.add_mesh(vertices, indices, normals=normals, texture_coords=tex_coords)
-
-    vertices = np.array([[0,-1,0.0],[-1, 0, 0.0],[0, 0, 0.0]], dtype='f')
-    normals = np.array([[0,0,1],[1, 0, 0],[0, 1, 0]], dtype='f')
-    tex_coords = np.array([[0,0],[1, 1],[0, 1]], dtype='f')
-    indices = np.array([[0,1,2]], dtype=np.int32)
-    widget.add_mesh(vertices, indices, normals=normals, texture_coords=tex_coords)
-
-    widget.show()
-    sys.exit(app.exec())
 
 
 

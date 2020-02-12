@@ -1,5 +1,5 @@
 import numpy as np
-from projection import perspective, lookat, normalize, rotate
+from .projection import perspective, lookat, normalize, rotate
 
 class Camera:
     def __init__(self, size):
