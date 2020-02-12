@@ -93,6 +93,9 @@ class ViewerWidget(QOpenGLWidget):
             sys.stdout.close()
             sys.stderr.close()
             exit()
+        if e.key() == Qt.Key_R:
+            self.camera.reset()
+            self.update()
 
     def mousePressEvent(self, e):
         self.mouse_handler.add_mouse_press_event(e)

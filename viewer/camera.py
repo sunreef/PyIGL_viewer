@@ -4,6 +4,9 @@ from projection import perspective, lookat, normalize, rotate
 class Camera:
     def __init__(self, size):
         self.aspect_ratio = float(size.width()) / float(size.height())
+        self.reset()
+
+    def reset(self):
         self.field_of_view = 60.0
         self.near_plane = 0.1
         self.far_plane = 100.0
