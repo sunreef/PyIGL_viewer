@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 
 from shader import ShaderProgram
 from mouse import MouseHandler
+from camera import Camera
 from projection import perspective, lookat, normalize, rotate
 
 class ViewerWidget(QOpenGLWidget):
@@ -16,14 +17,7 @@ class ViewerWidget(QOpenGLWidget):
         super(ViewerWidget, self).__init__()
 
         # Global viewer attributes
-        self.aspect_ratio = float(self.size().width()) / float(self.size().height())
-        self.field_of_view = 60.0
-        self.near_plane = 0.1
-        self.far_plane = 100.0
-
-        self.eye = np.array([0.0, 0.0, 1.0])
-        self.target = np.array([0.0, 0.0, 0.0])
-        self.up = np.array([0.0, 1.0, 0.0])
+        self.camera = Camera(self.size())
 
         # Available shaders
         self.shaders = {}
@@ -52,8 +46,8 @@ class ViewerWidget(QOpenGLWidget):
 
     def paintGL(self):
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-        view_matrix = lookat(self.eye, self.target, self.up)
-        projection_matrix = perspective(self.field_of_view, self.aspect_ratio, self.near_plane, self.far_plane)
+        view_matrix = self.camera.get_view_matrix()
+        projection_matrix = self.camera.get_projection_matrix()
         for (vertex_buffer, normal_buffer, texture_buffer, element_buffer, shader_name) in zip(
                 self.vertex_buffers, 
                 self.normal_buffers, 
@@ -92,7 +86,7 @@ class ViewerWidget(QOpenGLWidget):
             gl.glDisableVertexAttribArray(2)
 
     def resizeGL(self, width, height):
-        self.aspect_ratio = float(self.size().width()) / float(self.size().height())
+        self.camera.handle_resize(width, height)
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
@@ -110,21 +104,8 @@ class ViewerWidget(QOpenGLWidget):
         self.mouse_handler.add_mouse_move_event(e)
         if self.mouse_handler.button_pressed(Qt.LeftButton):
             delta = -0.2 * self.mouse_handler.delta_mouse()
-            target_vector = self.eye - self.target
-            norm_target_vector = normalize(target_vector)
-            left_vector = np.cross(self.up, norm_target_vector)
-            rotation_x = rotate(delta.y(), left_vector)
-            rotation_y = rotate(delta.x(), self.up)
-            rotated_target = np.matmul(rotation_x, target_vector)
-            rotated_target = np.array(rotated_target)[0]
-            rotated_target = np.array(np.matmul(rotation_y, rotated_target))[0]
-            rotated_up_vector = np.array(np.matmul(rotation_x, self.up))[0]
-
-            self.eye = self.target + rotated_target
-            self.up = rotated_up_vector
-
+            self.camera.handle_rotation(delta)
             self.update()
-
 
     def add_mesh(self, vertices, faces, normals=None, texture_coords=None):
         self.vertex_buffers.append(gl.arrays.vbo.VBO(vertices))
@@ -139,6 +120,7 @@ class ViewerWidget(QOpenGLWidget):
             self.texture_buffers.append(None)
         self.shader_names.append('default')
         return len(self.vertex_buffers) - 1
+
 
 if __name__ == "__main__":
     app = QApplication([])
