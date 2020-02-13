@@ -16,7 +16,7 @@ from .camera import Camera
 from ..mesh import GlMesh, GlMeshInstance
 
 class ViewerWidget(QOpenGLWidget):
-    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str)
+    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, str)
     update_mesh_signal = pyqtSignal(int, np.ndarray)
 
     def __init__(self):
@@ -38,6 +38,7 @@ class ViewerWidget(QOpenGLWidget):
         self.shaders = {}
 
         # Mesh attributes
+        self.next_mesh = 0
         self.meshes = []
         self.mesh_instances = []
 
@@ -92,7 +93,7 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glUniform3fv(ambient_light_location, 1, self.ambient_lighting)
 
                 albedo_location = gl.glGetUniformLocation(shader_program, 'albedo')
-                gl.glUniform3fv(albedo_location, 1, np.array([0.6, 0.6, 0.6]))
+                gl.glUniform3fv(albedo_location, 1, mesh_instance.get_albedo())
 
 
             # Load projection matrix
@@ -138,15 +139,17 @@ class ViewerWidget(QOpenGLWidget):
             self.camera.handle_translation(delta)
             self.update()
 
-    def add_mesh_(self, vertices, faces, normals=None, texture_coords=None, shader='default'):
+    def add_mesh_(self, vertices, faces, normals=None, texture_coords=None, albedo=None, shader='default'):
+        print(faces)
         self.meshes.append(GlMesh(vertices, faces, normals, texture_coords))
-        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, shader))
-        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, 'wireframe'))
+        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, albedo, shader))
+        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, np.zeros((3,), dtype='f'), 'wireframe'))
         self.update()
 
-    def add_mesh(self, vertices, faces, normals=np.array([]), texture_coords=np.array([]), shader='default'):
-        self.add_mesh_signal.emit(vertices, faces, normals, texture_coords, shader)
-        return len(self.meshes)
+    def add_mesh(self, vertices, faces, normals=np.array([]), texture_coords=np.array([]), albedo=np.array([0.5, 0.5, 0.5]), shader='default'):
+        self.add_mesh_signal.emit(vertices, faces, normals, texture_coords, albedo, shader)
+        self.next_mesh += 1
+        return self.next_mesh - 1
 
     def update_mesh_(self, index, vertices, normals=None, texture_coords=None):
         self.meshes[index].update_vertices(vertices)

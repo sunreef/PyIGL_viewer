@@ -35,10 +35,11 @@ class GlMesh:
         self.vertex_buffer.set_array(vertices)
 
 class GlMeshInstance:
-    def __init__(self, mesh_prefab, model_matrix, shader_name):
+    def __init__(self, mesh_prefab, model_matrix, albedo, shader_name):
         self.mesh = mesh_prefab
         self.model_matrix = model_matrix
         self.shader_name = shader_name
+        self.albedo = albedo
 
     def number_vertices(self):
         return self.mesh.number_vertices
@@ -49,8 +50,12 @@ class GlMeshInstance:
     def get_model_matrix(self):
         return self.model_matrix
 
+    def get_albedo(self):
+        return self.albedo
+
     def get_shader_name(self):
         return self.shader_name
+
 
     def bind_vertex_attributes(self):
         self.mesh.bind_buffers()
