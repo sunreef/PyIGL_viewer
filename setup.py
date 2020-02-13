@@ -11,7 +11,7 @@ setup(name='IGL_viewer',
       keywords='igl viewer opengl mesh display',
       author='Victor Cornillère',
       author_email='covictor@inf.ethz.ch',
-      packages=['PyIGL_viewer'],
+      packages=find_packages(),
       install_requires=[
           "PyOpenGL", 
           "PyQt5"

@@ -1,4 +1,5 @@
 from .viewer import ViewerWidget
+from .mesh import GlMesh, GlMeshInstance
 
 if __name__ == "__main__":
     import numpy as np
@@ -19,6 +20,9 @@ if __name__ == "__main__":
     tex_coords = np.array([[0,0],[1, 1],[0, 1]], dtype='f')
     indices = np.array([[0,1,2]], dtype=np.int32)
     widget.add_mesh(vertices, indices, normals=normals, texture_coords=tex_coords)
+
+    vertices = np.array([[0,-1, -1.0],[-1, 0, -1.0],[0, 0, -1.0]], dtype='f')
+    widget.update_mesh(0, vertices)
 
     sys.exit(app.exec())
 
