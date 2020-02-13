@@ -11,5 +11,6 @@ void main()
 {
     outNormal = normal;
     outNormal.w = 0.0;
+    outNormal = view * outNormal;
     gl_Position = projection * view * position;
 }

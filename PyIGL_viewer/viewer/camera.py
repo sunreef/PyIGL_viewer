@@ -31,6 +31,14 @@ class Camera:
         self.eye = self.target + rotated_target
         self.up = rotated_up_vector
 
+    def handle_translation(self, delta):
+        target_vector = self.eye - self.target
+        norm_target_vector = normalize(target_vector)
+        left_vector = np.cross(self.up, norm_target_vector)
+        self.eye += delta.y() * self.up - delta.x() * left_vector
+        self.target += delta.y() * self.up - delta.x() * left_vector
+
+
     def get_view_matrix(self):
         return lookat(self.eye, self.target, self.up)
 

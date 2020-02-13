@@ -29,6 +29,10 @@ class ViewerWidget(QOpenGLWidget):
 
         # Global viewer attributes
         self.camera = Camera(self.size())
+        self.light_direction = np.array([-0.1, -0.1, 1.0])
+        self.light_direction /= np.linalg.norm(self.light_direction)
+        self.light_intensity = np.array([1.5, 1.5, 1.5])
+        self.ambient_lighting = np.array([0.1, 0.1, 0.1])
 
         # Available shaders
         self.shaders = {}
@@ -44,7 +48,6 @@ class ViewerWidget(QOpenGLWidget):
         # Mesh signal connections
         self.add_mesh_signal.connect(self.add_mesh_)
         self.update_mesh_signal.connect(self.update_mesh_)
-
 
     def add_shaders(self):       
         current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -76,6 +79,21 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
             shader_program = self.shaders[mesh_instance.get_shader_name()].program
             gl.glUseProgram(shader_program)
+
+
+            if shader_name == 'lambert':
+                light_direction_location = gl.glGetUniformLocation(shader_program, 'lightDirection')
+                gl.glUniform3fv(light_direction_location, 1, self.light_direction)
+
+                light_intensity_location = gl.glGetUniformLocation(shader_program, 'lightIntensity')
+                gl.glUniform3fv(light_intensity_location, 1, self.light_intensity)
+
+                ambient_light_location = gl.glGetUniformLocation(shader_program, 'ambientLighting')
+                gl.glUniform3fv(ambient_light_location, 1, self.ambient_lighting)
+
+                albedo_location = gl.glGetUniformLocation(shader_program, 'albedo')
+                gl.glUniform3fv(albedo_location, 1, np.array([0.6, 0.6, 0.6]))
+
 
             # Load projection matrix
             projection_location = gl.glGetUniformLocation(shader_program, 'projection')
@@ -115,6 +133,10 @@ class ViewerWidget(QOpenGLWidget):
             delta = -0.2 * self.mouse_handler.delta_mouse()
             self.camera.handle_rotation(delta)
             self.update()
+        elif self.mouse_handler.button_pressed(Qt.RightButton):
+            delta = 0.001 * self.mouse_handler.delta_mouse()
+            self.camera.handle_translation(delta)
+            self.update()
 
     def add_mesh_(self, vertices, faces, normals=None, texture_coords=None, shader='default'):
         self.meshes.append(GlMesh(vertices, faces, normals, texture_coords))
@@ -133,6 +155,12 @@ class ViewerWidget(QOpenGLWidget):
     def update_mesh(self, index, vertices, normals=None, texture_coords=None):
         self.update_mesh_signal.emit(index, vertices)
 
+    def set_directional_light(self, direction, intensity):
+        self.light_direction = direction
+        self.light_intensity = intensity
+
+    def set_ambient_light(self, intensity):
+        self.ambient_lighting = intensity
 
 
 
