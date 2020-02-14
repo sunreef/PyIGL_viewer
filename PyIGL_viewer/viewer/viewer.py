@@ -41,6 +41,7 @@ class ViewerWidget(QOpenGLWidget):
         self.next_mesh = 0
         self.meshes = []
         self.mesh_instances = []
+        self.draw_wireframe = True
 
         # Mouse input handling
         self.mouse_handler = MouseHandler()
@@ -76,6 +77,8 @@ class ViewerWidget(QOpenGLWidget):
         projection_matrix = self.camera.get_projection_matrix()
         for mesh_instance in self.mesh_instances:
             shader_name = mesh_instance.get_shader().name
+            if shader_name == 'wireframe' and not self.draw_wireframe:
+                continue
             if mesh_instance.fill:
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
             else:
@@ -120,6 +123,9 @@ class ViewerWidget(QOpenGLWidget):
         if e.key() == Qt.Key_R:
             self.camera.reset()
             self.update()
+        if e.key() == Qt.Key_W:
+            self.draw_wireframe = not self.draw_wireframe
+            self.update()
 
     def mousePressEvent(self, e):
         self.mouse_handler.add_mouse_press_event(e)
@@ -138,6 +144,15 @@ class ViewerWidget(QOpenGLWidget):
             self.camera.handle_translation(delta)
             self.update()
 
+    def wheelEvent(self, e):
+        self.mouse_handler.add_scroll_event(e)
+        delta = self.mouse_handler.delta_scroll()
+        if delta.y() != 0:
+            delta = -0.002 * delta.y() / 8.0
+            self.camera.handle_zoom(delta)
+            self.update()
+
+
     def add_mesh_(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):
         self.meshes.append(GlMesh(vertices, faces))
 
@@ -151,8 +166,8 @@ class ViewerWidget(QOpenGLWidget):
             except ValueError as err:
                 print(err)
                 self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['default'], fill=fill))
-        # if 'wireframe' in self.shaders:
-            # self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['wireframe']))
+        if 'wireframe' in self.shaders:
+            self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['wireframe'], fill=False))
         self.update()
 
     def add_mesh(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):

@@ -8,7 +8,7 @@ class Camera:
 
     def reset(self):
         self.field_of_view = 60.0
-        self.near_plane = 0.1
+        self.near_plane = 0.01
         self.far_plane = 100.0
 
         self.eye = np.array([0.0, 0.0, 1.0])
@@ -38,6 +38,11 @@ class Camera:
         self.eye += delta.y() * self.up - delta.x() * left_vector
         self.target += delta.y() * self.up - delta.x() * left_vector
 
+    def handle_zoom(self, delta):
+        target_vector = self.eye - self.target
+        delta = min(delta, 0.9)
+        delta = max(delta, -0.9)
+        self.eye += delta * target_vector
 
     def get_view_matrix(self):
         return lookat(self.eye, self.target, self.up)
