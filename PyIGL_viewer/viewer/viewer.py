@@ -16,7 +16,7 @@ from .camera import Camera
 from ..mesh import GlMesh, GlMeshInstance
 
 class ViewerWidget(QOpenGLWidget):
-    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, str)
+    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, str, dict, dict, bool)
     update_mesh_signal = pyqtSignal(int, np.ndarray)
 
     def __init__(self):
@@ -58,7 +58,7 @@ class ViewerWidget(QOpenGLWidget):
                 if f[-19:] == '_vertex_shader.vert':
                     shader_name = f[:-19]
                     fragment_shader_name = shader_name + '_fragment_shader.frag'
-                    self.shaders[shader_name] = ShaderProgram(os.path.join(dir_name, f),
+                    self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
                         os.path.join(dir_name, fragment_shader_name))
 
     def initializeGL(self):
@@ -75,26 +75,26 @@ class ViewerWidget(QOpenGLWidget):
         view_matrix = self.camera.get_view_matrix()
         projection_matrix = self.camera.get_projection_matrix()
         for mesh_instance in self.mesh_instances:
-            shader_name = mesh_instance.get_shader_name()
-            if shader_name == 'wireframe':
+            shader_name = mesh_instance.get_shader().name
+            if mesh_instance.fill:
+                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+            else:
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-            shader_program = self.shaders[mesh_instance.get_shader_name()].program
+            shader_program = mesh_instance.get_shader().program
             gl.glUseProgram(shader_program)
 
+            # if shader_name == 'lambert':
+                # light_direction_location = gl.glGetUniformLocation(shader_program, 'lightDirection')
+                # gl.glUniform3fv(light_direction_location, 1, self.light_direction)
 
-            if shader_name == 'lambert':
-                light_direction_location = gl.glGetUniformLocation(shader_program, 'lightDirection')
-                gl.glUniform3fv(light_direction_location, 1, self.light_direction)
+                # light_intensity_location = gl.glGetUniformLocation(shader_program, 'lightIntensity')
+                # gl.glUniform3fv(light_intensity_location, 1, self.light_intensity)
 
-                light_intensity_location = gl.glGetUniformLocation(shader_program, 'lightIntensity')
-                gl.glUniform3fv(light_intensity_location, 1, self.light_intensity)
+                # ambient_light_location = gl.glGetUniformLocation(shader_program, 'ambientLighting')
+                # gl.glUniform3fv(ambient_light_location, 1, self.ambient_lighting)
 
-                ambient_light_location = gl.glGetUniformLocation(shader_program, 'ambientLighting')
-                gl.glUniform3fv(ambient_light_location, 1, self.ambient_lighting)
-
-                albedo_location = gl.glGetUniformLocation(shader_program, 'albedo')
-                gl.glUniform3fv(albedo_location, 1, mesh_instance.get_albedo())
-
+                # albedo_location = gl.glGetUniformLocation(shader_program, 'albedo')
+                # gl.glUniform3fv(albedo_location, 1, mesh_instance.get_albedo())
 
             # Load projection matrix
             projection_location = gl.glGetUniformLocation(shader_program, 'projection')
@@ -106,9 +106,8 @@ class ViewerWidget(QOpenGLWidget):
 
             # Draw mesh
             mesh_instance.bind_vertex_attributes()
+            mesh_instance.bind_uniforms()
             gl.glDrawElements(gl.GL_TRIANGLES, 3 * mesh_instance.number_elements(), gl.GL_UNSIGNED_INT, None)
-            if shader_name == 'wireframe':
-                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
     def resizeGL(self, width, height):
         self.camera.handle_resize(width, height)
@@ -139,15 +138,25 @@ class ViewerWidget(QOpenGLWidget):
             self.camera.handle_translation(delta)
             self.update()
 
-    def add_mesh_(self, vertices, faces, normals=None, texture_coords=None, albedo=None, shader='default'):
-        print(faces)
-        self.meshes.append(GlMesh(vertices, faces, normals, texture_coords))
-        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, albedo, shader))
-        self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, np.zeros((3,), dtype='f'), 'wireframe'))
+    def add_mesh_(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):
+        self.meshes.append(GlMesh(vertices, faces))
+
+        uniforms['lightDirection'] = self.light_direction
+        uniforms['lightIntensity'] = self.light_intensity
+        uniforms['ambientLighting'] = self.ambient_lighting
+
+        if shader in self.shaders:
+            try:
+                self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders[shader], fill=fill))
+            except ValueError as err:
+                print(err)
+                self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['default'], fill=fill))
+        # if 'wireframe' in self.shaders:
+            # self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['wireframe']))
         self.update()
 
-    def add_mesh(self, vertices, faces, normals=np.array([]), texture_coords=np.array([]), albedo=np.array([0.5, 0.5, 0.5]), shader='default'):
-        self.add_mesh_signal.emit(vertices, faces, normals, texture_coords, albedo, shader)
+    def add_mesh(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):
+        self.add_mesh_signal.emit(vertices, faces, shader, attributes, uniforms, fill)
         self.next_mesh += 1
         return self.next_mesh - 1
 
