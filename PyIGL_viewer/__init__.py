@@ -1,4 +1,4 @@
-from .viewer import ViewerWidget
+from .viewer import ViewerWidget, Viewer
 from .mesh import GlMesh, GlMeshInstance
 
 if __name__ == "__main__":
