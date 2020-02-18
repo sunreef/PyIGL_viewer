@@ -64,7 +64,6 @@ class ViewerWidget(QOpenGLWidget):
 
     def initializeGL(self):
         self.add_shaders()
-
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glDepthFunc(gl.GL_LESS)
         gl.glClearDepth(1.0)
@@ -85,19 +84,6 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
             shader_program = mesh_instance.get_shader().program
             gl.glUseProgram(shader_program)
-
-            # if shader_name == 'lambert':
-                # light_direction_location = gl.glGetUniformLocation(shader_program, 'lightDirection')
-                # gl.glUniform3fv(light_direction_location, 1, self.light_direction)
-
-                # light_intensity_location = gl.glGetUniformLocation(shader_program, 'lightIntensity')
-                # gl.glUniform3fv(light_intensity_location, 1, self.light_intensity)
-
-                # ambient_light_location = gl.glGetUniformLocation(shader_program, 'ambientLighting')
-                # gl.glUniform3fv(ambient_light_location, 1, self.ambient_lighting)
-
-                # albedo_location = gl.glGetUniformLocation(shader_program, 'albedo')
-                # gl.glUniform3fv(albedo_location, 1, mesh_instance.get_albedo())
 
             # Load projection matrix
             projection_location = gl.glGetUniformLocation(shader_program, 'projection')
@@ -161,6 +147,7 @@ class ViewerWidget(QOpenGLWidget):
 
         if shader in self.shaders:
             try:
+
                 self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders[shader], fill=fill))
             except ValueError as err:
                 print(err)

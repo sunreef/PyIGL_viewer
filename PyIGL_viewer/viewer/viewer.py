@@ -43,6 +43,7 @@ class Viewer(QMainWindow):
         viewer_widget = ViewerWidget()
         viewer_widget.setFocusPolicy(Qt.ClickFocus)
         self.main_layout.addWidget(viewer_widget, x, y+1, row_span, column_span)
+        viewer_widget.show()
         return viewer_widget
 
 
