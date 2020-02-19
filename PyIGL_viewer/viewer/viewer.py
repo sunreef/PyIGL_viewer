@@ -5,16 +5,15 @@ from .ui_widgets import PropertyWidget
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QPushButton, QLineEdit, QLabel
-
+from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QGridLayout, QPushButton, QLineEdit, QLabel
 
 
 viewer_palette = {
         'viewer_background': '#7f7f9b',
-        'menu_background': '#888888',
-        'ui_element_background': '#bbbbbb',
+        'menu_background': '#bbbbbf',
+        'ui_element_background': '#cccccc',
+        'ui_group_border_color': '#777777'
         }
-
 
 
 class Viewer(QMainWindow):
@@ -33,6 +32,7 @@ class Viewer(QMainWindow):
         widget.setLayout(self.main_layout)
 
         menu_widget = QWidget()
+        menu_widget.setStyleSheet(f"background-color: {viewer_palette['menu_background']}")
         self.menu_layout = QVBoxLayout()
         self.menu_layout.setAlignment(Qt.AlignTop)
         menu_widget.setLayout(self.menu_layout)
@@ -40,13 +40,12 @@ class Viewer(QMainWindow):
 
         self.viewer_widgets = []
         self.menu_properties = {}
-
-        menu_widget.setStyleSheet(f"background-color: {viewer_palette['menu_background']}")
+        self.current_menu_layout = self.menu_layout
 
         self.setCentralWidget(widget)
 
     def add_viewer_widget(self, x, y, row_span=1, column_span=1):
-        viewer_widget = ViewerWidget()
+        viewer_widget = ViewerWidget(self)
         viewer_widget.setFocusPolicy(Qt.ClickFocus)
         self.main_layout.addWidget(viewer_widget, x, y+1, row_span, column_span)
         viewer_widget.show()
@@ -59,19 +58,34 @@ class Viewer(QMainWindow):
         else:
             return None
 
+    def start_ui_group(self, name):
+        group_layout = QVBoxLayout()
+        widget = QFrame(self)
+        widget.setLineWidth(2)
+        widget.setLayout(group_layout)
+        widget.setObjectName('groupFrame')
+        widget.setStyleSheet("#groupFrame { border: 1px solid " + viewer_palette['ui_group_border_color'] + "; }")
+        group_label = QLabel(name, widget)
+        group_layout.addWidget(group_label)
+        group_layout.setAlignment(group_label, Qt.AlignHCenter)
+        self.menu_layout.addWidget(widget)
+        self.current_menu_layout = group_layout
+
+    def finish_ui_group(self):
+        self.current_menu_layout = self.menu_layout
+
     def add_ui_button(self, text, function, color=viewer_palette['ui_element_background']):
         button = QPushButton(text, self)
         button.clicked.connect(function)
         button.setAutoFillBackground(True)
         button.setStyleSheet(f"background-color: {color}")
-        self.menu_layout.addWidget(button)
-        self.menu_layout.setAlignment(button, Qt.AlignTop)
+        self.current_menu_layout.addWidget(button)
         return button
 
     def add_ui_property(self, property_name, text, initial_value):
         widget = PropertyWidget(text, initial_value)
         self.menu_properties[property_name] = widget
-        self.menu_layout.addWidget(widget)
+        self.current_menu_layout.addWidget(widget)
 
     def get_float_property(self, name):
         if name in self.menu_properties:
@@ -90,7 +104,11 @@ class Viewer(QMainWindow):
         self.main_layout.setRowStretch(row, stretch)
 
     def keyPressEvent(self, e):
-        pass
+        if e.key() == Qt.Key_Escape:
+            sys.stdout.close()
+            sys.stderr.close()
+            self.close_signal.emit()
+            exit()
 
     def closeEvent(self, event):
         self.close_signal.emit()

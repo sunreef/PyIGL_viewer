@@ -19,8 +19,8 @@ class ViewerWidget(QOpenGLWidget):
     add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, str, dict, dict, bool)
     update_mesh_signal = pyqtSignal(int, np.ndarray)
 
-    def __init__(self):
-        super(ViewerWidget, self).__init__()
+    def __init__(self, parent):
+        super(ViewerWidget, self).__init__(parent)
 
         # Add antialiasing
         format = QSurfaceFormat()
@@ -105,6 +105,7 @@ class ViewerWidget(QOpenGLWidget):
         if e.key() == Qt.Key_Escape:
             sys.stdout.close()
             sys.stderr.close()
+            self.parent.close_signal.emit()
             exit()
         if e.key() == Qt.Key_R:
             self.camera.reset()
