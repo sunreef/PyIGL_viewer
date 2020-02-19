@@ -126,7 +126,7 @@ class ViewerWidget(QOpenGLWidget):
             self.camera.handle_rotation(delta)
             self.update()
         elif self.mouse_handler.button_pressed(Qt.RightButton):
-            delta = 0.001 * self.mouse_handler.delta_mouse()
+            delta = self.mouse_handler.delta_mouse()
             self.camera.handle_translation(delta)
             self.update()
 

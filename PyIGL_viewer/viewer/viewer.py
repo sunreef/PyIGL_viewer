@@ -31,7 +31,8 @@ class Viewer(QMainWindow):
         widget = QWidget()
         widget.setLayout(self.main_layout)
 
-        menu_widget = QWidget()
+        menu_widget = QFrame(self)
+        menu_widget.setFrameStyle(QFrame.Panel | QFrame.Raised)
         menu_widget.setStyleSheet(f"background-color: {viewer_palette['menu_background']}")
         self.menu_layout = QVBoxLayout()
         self.menu_layout.setAlignment(Qt.AlignTop)
@@ -82,10 +83,19 @@ class Viewer(QMainWindow):
         self.current_menu_layout.addWidget(button)
         return button
 
-    def add_ui_property(self, property_name, text, initial_value):
-        widget = PropertyWidget(text, initial_value)
+    def add_ui_property(self, property_name, text, initial_value, read_only=False):
+        widget = PropertyWidget(text, initial_value, read_only)
         self.menu_properties[property_name] = widget
         self.current_menu_layout.addWidget(widget)
+
+    def set_float_property(self, name, new_value):
+        if name in self.menu_properties:
+            try:
+                self.menu_properties[name].set_value(new_value)
+            except ValueError:
+                return
+        else:
+            return
 
     def get_float_property(self, name):
         if name in self.menu_properties:

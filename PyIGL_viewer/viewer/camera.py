@@ -3,6 +3,8 @@ from .projection import perspective, lookat, normalize, rotate
 
 class Camera:
     def __init__(self, size):
+        self.width = size.width()
+        self.height = size.height()
         self.aspect_ratio = float(size.width()) / float(size.height())
         self.reset()
 
@@ -17,6 +19,8 @@ class Camera:
 
     def handle_resize(self, width, height):
         self.aspect_ratio = float(width) / float(height)
+        self.width = width
+        self.height = height
 
     def handle_rotation(self, delta):
         target_vector = self.eye - self.target
@@ -32,6 +36,8 @@ class Camera:
         self.up = rotated_up_vector
 
     def handle_translation(self, delta):
+        delta.setX(delta.x() / self.width)
+        delta.setY(delta.y() / self.height)
         target_vector = self.eye - self.target
         norm_target_vector = normalize(target_vector)
         left_vector = np.cross(self.up, norm_target_vector)
