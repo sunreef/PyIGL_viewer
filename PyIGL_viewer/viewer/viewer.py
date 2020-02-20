@@ -15,7 +15,6 @@ viewer_palette = {
         'ui_group_border_color': '#777777'
         }
 
-
 class Viewer(QMainWindow):
     close_signal = pyqtSignal()
 

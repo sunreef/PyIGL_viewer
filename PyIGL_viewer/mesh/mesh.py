@@ -1,6 +1,6 @@
 from OpenGL import GL as gl
-
 from ..viewer.shader import ShaderProgram
+
 
 class GlMesh:
     def __init__(self, vertices, faces, shader='default'):
@@ -17,6 +17,7 @@ class GlMesh:
 
     def update_vertices(self, vertices):
         self.vertex_buffer.set_array(vertices)
+
 
 class GlMeshInstance:
     def __init__(self, mesh_prefab, model_matrix, attributes, uniforms, shader, fill):
@@ -47,11 +48,11 @@ class GlMeshInstance:
     def number_elements(self):
         return self.mesh.number_elements
 
+    def set_model_matrix(self, new_model):
+        self.model_matrix = new_model
+
     def get_model_matrix(self):
         return self.model_matrix
-
-    def get_albedo(self):
-        return self.albedo
 
     def get_shader(self):
         return self.shader

@@ -16,8 +16,10 @@ from .camera import Camera
 from ..mesh import GlMesh, GlMeshInstance
 
 class ViewerWidget(QOpenGLWidget):
-    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray, str, dict, dict, bool)
-    update_mesh_signal = pyqtSignal(int, np.ndarray)
+    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray)
+    add_mesh_instance_signal = pyqtSignal(int, str, dict, dict, bool)
+    update_mesh_vertices_signal = pyqtSignal(int, np.ndarray)
+    update_mesh_instance_model_signal = pyqtSignal(int, np.ndarray)
 
     def __init__(self, parent):
         super(ViewerWidget, self).__init__(parent)
@@ -39,6 +41,7 @@ class ViewerWidget(QOpenGLWidget):
 
         # Mesh attributes
         self.next_mesh = 0
+        self.next_mesh_instance = 0
         self.meshes = []
         self.mesh_instances = []
         self.draw_wireframe = True
@@ -48,8 +51,15 @@ class ViewerWidget(QOpenGLWidget):
         self.setMouseTracking(True)
 
         # Mesh signal connections
+        self.add_mesh_lock = threading.Lock()
         self.add_mesh_signal.connect(self.add_mesh_)
-        self.update_mesh_signal.connect(self.update_mesh_)
+
+        self.add_mesh_instance_lock = threading.Lock()
+        self.add_mesh_instance_signal.connect(self.add_mesh_instance_)
+
+        self.update_mesh_vertices_signal.connect(self.update_mesh_vertices_)
+
+        self.update_mesh_instance_model_signal.connect(self.update_mesh_instance_model_)
 
     def add_shaders(self):       
         current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -93,6 +103,14 @@ class ViewerWidget(QOpenGLWidget):
             view_location = gl.glGetUniformLocation(shader_program, 'view')
             gl.glUniformMatrix4fv(view_location, 1, False, view_matrix.transpose())
 
+            # Load model matrix
+            model_matrix = mesh_instance.get_model_matrix()
+            if model_matrix is None:
+                mesh_instance.set_model_matrix(np.eye(4, dtype='f'))
+                model_matrix = mesh_instance.get_model_matrix()
+            model_location = gl.glGetUniformLocation(shader_program, 'model')
+            gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
+
             # Draw mesh
             mesh_instance.bind_vertex_attributes()
             mesh_instance.bind_uniforms()
@@ -100,6 +118,9 @@ class ViewerWidget(QOpenGLWidget):
 
     def resizeGL(self, width, height):
         self.camera.handle_resize(width, height)
+
+    #################################################################################################
+    # Event handling
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
@@ -138,36 +159,70 @@ class ViewerWidget(QOpenGLWidget):
             self.camera.handle_zoom(delta)
             self.update()
 
+    #################################################################################################
 
-    def add_mesh_(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):
+    #################################################################################################
+    # Mesh adding, updating and removing
+
+    def add_mesh_(self, vertices, faces):
         self.meshes.append(GlMesh(vertices, faces))
 
+    def add_mesh(self, vertices, faces):
+        self.add_mesh_lock.acquire()
+        self.add_mesh_signal.emit(vertices, faces)
+        mesh_index = self.next_mesh
+        self.next_mesh += 1
+        self.add_mesh_lock.release()
+        return mesh_index
+
+    def add_mesh_instance_(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
         uniforms['lightDirection'] = self.light_direction
         uniforms['lightIntensity'] = self.light_intensity
         uniforms['ambientLighting'] = self.ambient_lighting
-
         if shader in self.shaders:
             try:
-
-                self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders[shader], fill=fill))
+                self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders[shader], fill=fill))
             except ValueError as err:
                 print(err)
-                self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['default'], fill=fill))
-        if 'wireframe' in self.shaders:
-            self.mesh_instances.append(GlMeshInstance(self.meshes[-1], None, attributes, uniforms, self.shaders['wireframe'], fill=False))
+                self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders['default'], fill=fill))
+        # if 'wireframe' in self.shaders and fill and add_wireframe:
+            # self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders['wireframe'], fill=False))
         self.update()
 
-    def add_mesh(self, vertices, faces, shader='default', attributes={}, uniforms={}, fill=True):
-        self.add_mesh_signal.emit(vertices, faces, shader, attributes, uniforms, fill)
-        self.next_mesh += 1
-        return self.next_mesh - 1
+    def add_mesh_instance(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
+        self.add_mesh_instance_lock.acquire()
+        self.add_mesh_instance_signal.emit(mesh_index, shader, attributes, uniforms, fill)
+        instance_index = self.next_mesh_instance
+        self.next_mesh_instance += 1
+        self.add_mesh_instance_lock.release()
+        return instance_index
 
-    def update_mesh_(self, index, vertices, normals=None, texture_coords=None):
+    def update_mesh_vertices(self, index, vertices):
         self.meshes[index].update_vertices(vertices)
         self.update()
 
-    def update_mesh(self, index, vertices, normals=None, texture_coords=None):
-        self.update_mesh_signal.emit(index, vertices)
+    def update_mesh_vertices_(self, index, vertices):
+        self.update_mesh_vertices_signal.emit(index, vertices)
+
+    def update_mesh_instance_model(self, instance_index, model):
+        self.update_mesh_instance_model_signal.emit(instance_index, model)
+
+    def update_mesh_instance_model_(self, instance_index, model):
+        self.mesh_instances[instance_index].set_model_matrix(model)
+        self.update()
+
+    def remove_mesh(self, mesh_index):
+        if len(self.meshes) > mesh_index:
+            mesh_to_remove = self.meshes[mesh_index]
+            self.meshes[mesh_index] = None
+            for index, instance in enumerate(self.mesh_instances):
+                if self.mesh == mesh_to_remove:
+                    self.mesh_instances[index] = None
+
+    #################################################################################################
+
+    #################################################################################################
+    # General viewer settings
 
     def set_directional_light(self, direction, intensity):
         self.light_direction = direction
@@ -180,6 +235,7 @@ class ViewerWidget(QOpenGLWidget):
         self.draw_wireframe = not self.draw_wireframe
         self.update()
 
+    #################################################################################################
 
 
 
