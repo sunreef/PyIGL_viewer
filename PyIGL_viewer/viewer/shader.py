@@ -35,7 +35,7 @@ class ShaderProgram:
         for i in range(count_uniforms):
             name, size, type = gl.glGetActiveUniform(self.program, i)
             name = name.decode('utf-8')
-            if name == 'projection' or name == 'view' or name == 'model':
+            if name == 'mvp' or name == 'projection' or name == 'view' or name == 'model':
                 continue
             uniform_location = gl.glGetUniformLocation(self.program, name)
             self.uniforms[name] = uniform_location

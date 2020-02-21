@@ -2,7 +2,7 @@ from OpenGL import GL as gl
 from ..viewer.shader import ShaderProgram
 
 
-class GlMesh:
+class GlMeshCore:
     def __init__(self, vertices, faces, shader='default'):
         self.number_vertices = vertices.shape[0]
         self.number_elements = faces.shape[0]
@@ -17,13 +17,12 @@ class GlMesh:
 
     def update_vertices(self, vertices):
         self.vertex_buffer.set_array(vertices)
+        
 
-
-class GlMeshInstance:
-    def __init__(self, mesh_prefab, model_matrix, attributes, uniforms, shader, fill):
+class GlMeshPrefab:
+    def __init__(self, mesh_core, attributes, uniforms, shader, fill):
         self.fill = fill
-        self.mesh = mesh_prefab
-        self.model_matrix = model_matrix
+        self.mesh = mesh_core
         self.shader = shader
         self.attributes = attributes
         self.uniforms = uniforms
@@ -47,12 +46,6 @@ class GlMeshInstance:
 
     def number_elements(self):
         return self.mesh.number_elements
-
-    def set_model_matrix(self, new_model):
-        self.model_matrix = new_model
-
-    def get_model_matrix(self):
-        return self.model_matrix
 
     def get_shader(self):
         return self.shader
@@ -91,4 +84,31 @@ class GlMeshInstance:
         for uniform in self.uniform_values:
             uniform_location = self.shader.uniforms[uniform]
             self.bind_uniform_(uniform_location, self.uniform_values[uniform])
+
+
+class GlMeshInstance:
+    def __init__(self, mesh_prefab, model_matrix):
+        self.mesh = mesh_prefab
+        self.model_matrix = model_matrix
+
+    def number_vertices(self):
+        return self.mesh.number_vertices()
+
+    def number_elements(self):
+        return self.mesh.number_elements()
+
+    def set_model_matrix(self, new_model):
+        self.model_matrix = new_model
+
+    def get_model_matrix(self):
+        return self.model_matrix
+
+    def get_shader(self):
+        return self.mesh.shader
+
+    def bind_vertex_attributes(self):
+        self.mesh.bind_vertex_attributes()
+
+    def bind_uniforms(self):
+        self.mesh.bind_uniforms()
 

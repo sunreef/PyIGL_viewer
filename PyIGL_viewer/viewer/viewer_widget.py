@@ -13,11 +13,12 @@ from .shader import ShaderProgram
 from .mouse import MouseHandler
 from .camera import Camera
 
-from ..mesh import GlMesh, GlMeshInstance
+from ..mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance
 
 class ViewerWidget(QOpenGLWidget):
     add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray)
-    add_mesh_instance_signal = pyqtSignal(int, str, dict, dict, bool)
+    add_mesh_prefab_signal = pyqtSignal(int, str, dict, dict, bool)
+    add_mesh_instance_signal = pyqtSignal(int, np.ndarray)
     update_mesh_vertices_signal = pyqtSignal(int, np.ndarray)
     update_mesh_instance_model_signal = pyqtSignal(int, np.ndarray)
 
@@ -26,7 +27,7 @@ class ViewerWidget(QOpenGLWidget):
 
         # Add antialiasing
         format = QSurfaceFormat()
-        format.setSamples(16)
+        format.setSamples(8)
         self.setFormat(format)
 
         # Global viewer attributes
@@ -41,8 +42,10 @@ class ViewerWidget(QOpenGLWidget):
 
         # Mesh attributes
         self.next_mesh = 0
+        self.next_mesh_prefab = 0
         self.next_mesh_instance = 0
         self.meshes = []
+        self.mesh_prefabs = []
         self.mesh_instances = []
         self.draw_wireframe = True
 
@@ -53,6 +56,9 @@ class ViewerWidget(QOpenGLWidget):
         # Mesh signal connections
         self.add_mesh_lock = threading.Lock()
         self.add_mesh_signal.connect(self.add_mesh_)
+
+        self.add_mesh_prefab_lock = threading.Lock()
+        self.add_mesh_prefab_signal.connect(self.add_mesh_prefab_)
 
         self.add_mesh_instance_lock = threading.Lock()
         self.add_mesh_instance_signal.connect(self.add_mesh_instance_)
@@ -88,7 +94,7 @@ class ViewerWidget(QOpenGLWidget):
             shader_name = mesh_instance.get_shader().name
             if shader_name == 'wireframe' and not self.draw_wireframe:
                 continue
-            if mesh_instance.fill:
+            if mesh_instance.mesh.fill:
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
             else:
                 gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
@@ -110,6 +116,9 @@ class ViewerWidget(QOpenGLWidget):
                 model_matrix = mesh_instance.get_model_matrix()
             model_location = gl.glGetUniformLocation(shader_program, 'model')
             gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
+
+            mvp_location = gl.glGetUniformLocation(shader_program, 'mvp')
+            gl.glUniformMatrix4fv(mvp_location, 1, False, (projection_matrix * view_matrix * model_matrix).transpose())
 
             # Draw mesh
             mesh_instance.bind_vertex_attributes()
@@ -165,7 +174,7 @@ class ViewerWidget(QOpenGLWidget):
     # Mesh adding, updating and removing
 
     def add_mesh_(self, vertices, faces):
-        self.meshes.append(GlMesh(vertices, faces))
+        self.meshes.append(GlMeshCore(vertices, faces))
 
     def add_mesh(self, vertices, faces):
         self.add_mesh_lock.acquire()
@@ -175,23 +184,32 @@ class ViewerWidget(QOpenGLWidget):
         self.add_mesh_lock.release()
         return mesh_index
 
-    def add_mesh_instance_(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
+    def add_mesh_prefab_(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
         uniforms['lightDirection'] = self.light_direction
         uniforms['lightIntensity'] = self.light_intensity
         uniforms['ambientLighting'] = self.ambient_lighting
         if shader in self.shaders:
             try:
-                self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders[shader], fill=fill))
+                self.mesh_prefabs.append(GlMeshPrefab(self.meshes[mesh_index], attributes, uniforms, self.shaders[shader], fill=fill))
             except ValueError as err:
                 print(err)
-                self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders['default'], fill=fill))
-        # if 'wireframe' in self.shaders and fill and add_wireframe:
-            # self.mesh_instances.append(GlMeshInstance(self.meshes[mesh_index], None, attributes, uniforms, self.shaders['wireframe'], fill=False))
+                self.mesh_prefabs.append(GlMeshPrefab(self.meshes[mesh_index], attributes, uniforms, self.shaders['default'], fill=fill))
+
+    def add_mesh_prefab(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
+        self.add_mesh_prefab_lock.acquire()
+        self.add_mesh_prefab_signal.emit(mesh_index, shader, attributes, uniforms, fill)
+        prefab_index = self.next_mesh_prefab
+        self.next_mesh_prefab += 1
+        self.add_mesh_prefab_lock.release()
+        return prefab_index
+
+    def add_mesh_instance_(self, mesh_prefab_index, model_matrix):
+        self.mesh_instances.append(GlMeshInstance(self.mesh_prefabs[mesh_prefab_index], model_matrix))
         self.update()
 
-    def add_mesh_instance(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
+    def add_mesh_instance(self, mesh_prefab_index, model_matrix):
         self.add_mesh_instance_lock.acquire()
-        self.add_mesh_instance_signal.emit(mesh_index, shader, attributes, uniforms, fill)
+        self.add_mesh_instance_signal.emit(mesh_prefab_index, model_matrix)
         instance_index = self.next_mesh_instance
         self.next_mesh_instance += 1
         self.add_mesh_instance_lock.release()
@@ -216,8 +234,14 @@ class ViewerWidget(QOpenGLWidget):
             mesh_to_remove = self.meshes[mesh_index]
             self.meshes[mesh_index] = None
             for index, instance in enumerate(self.mesh_instances):
-                if self.mesh == mesh_to_remove:
+                if instance.mesh == mesh_to_remove:
                     self.mesh_instances[index] = None
+
+    def clear_all(self):
+        self.meshes = []
+        self.mesh_instances = []
+        self.next_mesh = 1
+        self.next_mesh_instance = 1
 
     #################################################################################################
 

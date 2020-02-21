@@ -1,5 +1,5 @@
 from .viewer import ViewerWidget, Viewer
-from .mesh import GlMesh, GlMeshInstance
+from .mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance
 
 if __name__ == "__main__":
     import numpy as np

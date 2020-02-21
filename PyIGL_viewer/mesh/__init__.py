@@ -1,1 +1,1 @@
-from .mesh import GlMesh, GlMeshInstance
+from .mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance
