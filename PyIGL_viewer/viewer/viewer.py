@@ -10,9 +10,10 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QHBoxLayout, QVBoxLayo
 
 viewer_palette = {
         'viewer_background': '#7f7f9b',
+        'viewer_widget_border_color': '#555555',
         'menu_background': '#bbbbbf',
         'ui_element_background': '#cccccc',
-        'ui_group_border_color': '#777777'
+        'ui_group_border_color': '#777777',
         }
 
 class Viewer(QMainWindow):
@@ -45,9 +46,19 @@ class Viewer(QMainWindow):
         self.setCentralWidget(widget)
 
     def add_viewer_widget(self, x, y, row_span=1, column_span=1):
+        group_layout = QVBoxLayout()
+        group_layout.setSpacing(0)
+        group_layout.setContentsMargins(0, 0, 0, 0)
+        widget = QFrame(self)
+        widget.setLineWidth(2)
+        widget.setLayout(group_layout)
+        widget.setObjectName('groupFrame')
+        widget.setStyleSheet("#groupFrame { border: 1px solid " + viewer_palette['viewer_widget_border_color'] + "; }")
+
         viewer_widget = ViewerWidget(self)
         viewer_widget.setFocusPolicy(Qt.ClickFocus)
-        self.main_layout.addWidget(viewer_widget, x, y+1, row_span, column_span)
+        group_layout.addWidget(viewer_widget)
+        self.main_layout.addWidget(widget, x, y+1, row_span, column_span)
         viewer_widget.show()
         self.viewer_widgets.append(viewer_widget)
         return viewer_widget, len(self.viewer_widgets) - 1
