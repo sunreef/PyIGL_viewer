@@ -91,6 +91,8 @@ class ViewerWidget(QOpenGLWidget):
         view_matrix = self.camera.get_view_matrix()
         projection_matrix = self.camera.get_projection_matrix()
         for mesh_instance in self.mesh_instances:
+            if not mesh_instance.get_visibility():
+                continue
             shader_name = mesh_instance.get_shader().name
             if shader_name == 'wireframe' and not self.draw_wireframe:
                 continue
@@ -228,6 +230,13 @@ class ViewerWidget(QOpenGLWidget):
     def update_mesh_instance_model_(self, instance_index, model):
         self.mesh_instances[instance_index].set_model_matrix(model)
         self.update()
+
+    def set_mesh_instance_visibility(self, instance_index, visibility):
+        self.mesh_instances[instance_index].set_visibility(visibility)
+        self.update()
+
+    def get_mesh_instance_visibility(self, instance_index):
+        return self.mesh_instances[instance_index].get_visibility()
 
     def remove_mesh(self, mesh_index):
         if len(self.meshes) > mesh_index:

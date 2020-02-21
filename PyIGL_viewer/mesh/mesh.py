@@ -91,6 +91,8 @@ class GlMeshInstance:
         self.mesh = mesh_prefab
         self.model_matrix = model_matrix
 
+        self.visibility= True
+
     def number_vertices(self):
         return self.mesh.number_vertices()
 
@@ -102,6 +104,12 @@ class GlMeshInstance:
 
     def get_model_matrix(self):
         return self.model_matrix
+
+    def get_visibility(self):
+        return self.visibility
+
+    def set_visibility(self, visibility):
+        self.visibility = visibility
 
     def get_shader(self):
         return self.mesh.shader
