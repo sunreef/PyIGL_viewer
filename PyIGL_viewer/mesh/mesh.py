@@ -6,6 +6,9 @@ import datetime
 import uuid
 
 
+#################################################################################################
+# A mesh core contains the vertex positions and the topology of the triangle mesh.
+
 class GlMeshCoreId:
     def __init__(self):
         self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
@@ -26,7 +29,12 @@ class GlMeshCore:
 
     def update_vertices(self, vertices):
         self.vertex_buffer.set_array(vertices)
+
+#################################################################################################
         
+#################################################################################################
+# A mesh prefab contains a shader program as well as the necessary vertex attributes and uniform values for this shader.
+# It defines the appearance of a given mesh.
 
 class GlMeshPrefabId:
     def __init__(self, core_id):
@@ -91,6 +99,11 @@ class GlMeshPrefab:
             uniform_location = self.shader.uniforms[uniform]
             self.bind_uniform_(uniform_location, self.uniform_values[uniform])
 
+#################################################################################################
+
+#################################################################################################
+# A mesh instance contains the mesh model matrix that gives its position and orientation in the world.
+# It also contains a visibility flag that determines whether the mesh will be drawn or not.
 
 class GlMeshInstanceId:
     def __init__(self, prefab_id):
@@ -115,6 +128,11 @@ class GlMeshInstance:
 
     def set_visibility(self, visibility):
         self.visibility = visibility
+
+#################################################################################################
+
+#################################################################################################
+# A mesh group contains all the prefabs and instances related to a mesh core.
 
 class MeshGroup:
     def __init__(self, vertices, faces):
@@ -164,3 +182,4 @@ class MeshGroup:
             iterators.append(zip(cores, prefabs, instances))
         return chain(*iterators)
 
+#################################################################################################
