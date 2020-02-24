@@ -154,6 +154,13 @@ class MeshGroup:
     def get_instance(self, instance_id):
         return self.mesh_instances[instance_id.prefab_id][instance_id.id]
 
+    def remove_prefab(self, prefab_id):
+        self.mesh_prefabs.pop(prefab_id.id)
+        self.mesh_instances.pop(prefab_id.id)
+
+    def remove_instance(self, instance_id):
+        self.mesh_instances[instance_id.prefab_id].pop(instance_id.id)
+
     def get_prefab_length(self):
         return len(self.mesh_prefabs)
 

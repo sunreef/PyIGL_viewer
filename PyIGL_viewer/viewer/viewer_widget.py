@@ -243,6 +243,29 @@ class ViewerWidget(QOpenGLWidget):
     def get_mesh_instance_visibility(self, instance_id):
         return self.mesh_groups[instance_id.core_id].get_instance(instance_id).get_visibility()
 
+    def remove_mesh_core_(self, core_id):
+        self.mesh_groups.pop(core_id.id)
+
+    def remove_mesh_core(self, core_id):
+        self.mesh_events.put(['remove_mesh_core', core_id])
+        self.update()
+
+    def remove_mesh_prefab_(self, prefab_id):
+        self.mesh_groups[prefab_id.core_id].remove_prefab(prefab_id)
+
+    def remove_mesh_instance(self, instance_id):
+        self.mesh_events.put(['remove_mesh_instance', instance_id])
+        self.update()
+
+    def remove_mesh_instance_(self, instance_id):
+        self.mesh_groups[instance_id.core_id].remove_instance(instance_id)
+
+    def remove_mesh_instance(self, instance_id):
+        self.mesh_events.put(['remove_mesh_instance', instance_id])
+        self.update()
+        
+
+
     #################################################################################################
 
     #################################################################################################
