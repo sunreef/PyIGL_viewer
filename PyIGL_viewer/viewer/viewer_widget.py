@@ -8,17 +8,18 @@ from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5 import QtOpenGL, QtCore
 from PyQt5.QtGui import QOpenGLVersionProfile, QSurfaceFormat
 from PyQt5.QtCore import Qt, pyqtSignal
+from queue import Queue, Empty
 
 from .shader import ShaderProgram
 from .mouse import MouseHandler
 from .camera import Camera
 
-from ..mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance
+from ..mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance, MeshGroup, GlMeshCoreId, GlMeshPrefabId, GlMeshInstanceId
 
 class ViewerWidget(QOpenGLWidget):
     add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray)
-    add_mesh_prefab_signal = pyqtSignal(int, str, dict, dict, bool)
-    add_mesh_instance_signal = pyqtSignal(int, np.ndarray)
+    add_mesh_prefab_signal = pyqtSignal(int, int, str, dict, dict, bool)
+    add_mesh_instance_signal = pyqtSignal(int, int, int, np.ndarray)
     update_mesh_vertices_signal = pyqtSignal(int, np.ndarray)
     update_mesh_instance_model_signal = pyqtSignal(int, np.ndarray)
 
@@ -41,12 +42,8 @@ class ViewerWidget(QOpenGLWidget):
         self.shaders = {}
 
         # Mesh attributes
-        self.next_mesh = 0
-        self.next_mesh_prefab = 0
-        self.next_mesh_instance = 0
-        self.meshes = []
-        self.mesh_prefabs = []
-        self.mesh_instances = []
+        self.mesh_events = Queue()
+        self.mesh_groups = {}
         self.draw_wireframe = True
 
         # Mouse input handling
@@ -64,7 +61,6 @@ class ViewerWidget(QOpenGLWidget):
         self.add_mesh_instance_signal.connect(self.add_mesh_instance_)
 
         self.update_mesh_vertices_signal.connect(self.update_mesh_vertices_)
-
         self.update_mesh_instance_model_signal.connect(self.update_mesh_instance_model_)
 
     def add_shaders(self):       
@@ -88,44 +84,49 @@ class ViewerWidget(QOpenGLWidget):
 
     def paintGL(self):
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
+
+        self.process_mesh_events()
+
         view_matrix = self.camera.get_view_matrix()
         projection_matrix = self.camera.get_projection_matrix()
-        for mesh_instance in self.mesh_instances:
-            if not mesh_instance.get_visibility():
-                continue
-            shader_name = mesh_instance.get_shader().name
-            if shader_name == 'wireframe' and not self.draw_wireframe:
-                continue
-            if mesh_instance.mesh.fill:
-                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-            else:
-                gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-            shader_program = mesh_instance.get_shader().program
-            gl.glUseProgram(shader_program)
+        for group in self.mesh_groups.values():
+            for core, prefab, instance in group:
+                if not instance.get_visibility():
+                    continue
+                shader_name = prefab.get_shader().name
+                if shader_name == 'wireframe' and not self.draw_wireframe:
+                    continue
+                if prefab.fill:
+                    gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+                else:
+                    gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+                shader_program = prefab.get_shader().program
+                gl.glUseProgram(shader_program)
 
-            # Load projection matrix
-            projection_location = gl.glGetUniformLocation(shader_program, 'projection')
-            gl.glUniformMatrix4fv(projection_location, 1, False, projection_matrix.transpose())
+                # Load projection matrix
+                projection_location = gl.glGetUniformLocation(shader_program, 'projection')
+                gl.glUniformMatrix4fv(projection_location, 1, False, projection_matrix.transpose())
 
-            # Load view matrix
-            view_location = gl.glGetUniformLocation(shader_program, 'view')
-            gl.glUniformMatrix4fv(view_location, 1, False, view_matrix.transpose())
+                # Load view matrix
+                view_location = gl.glGetUniformLocation(shader_program, 'view')
+                gl.glUniformMatrix4fv(view_location, 1, False, view_matrix.transpose())
 
-            # Load model matrix
-            model_matrix = mesh_instance.get_model_matrix()
-            if model_matrix is None:
-                mesh_instance.set_model_matrix(np.eye(4, dtype='f'))
-                model_matrix = mesh_instance.get_model_matrix()
-            model_location = gl.glGetUniformLocation(shader_program, 'model')
-            gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
+                # Load model matrix
+                model_matrix = instance.get_model_matrix()
+                if model_matrix is None:
+                    instance.set_model_matrix(np.eye(4, dtype='f'))
+                    model_matrix = instance.get_model_matrix()
+                model_location = gl.glGetUniformLocation(shader_program, 'model')
+                gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
 
-            mvp_location = gl.glGetUniformLocation(shader_program, 'mvp')
-            gl.glUniformMatrix4fv(mvp_location, 1, False, (projection_matrix * view_matrix * model_matrix).transpose())
+                mvp_location = gl.glGetUniformLocation(shader_program, 'mvp')
+                gl.glUniformMatrix4fv(mvp_location, 1, False, (projection_matrix * view_matrix * model_matrix).transpose())
 
-            # Draw mesh
-            mesh_instance.bind_vertex_attributes()
-            mesh_instance.bind_uniforms()
-            gl.glDrawElements(gl.GL_TRIANGLES, 3 * mesh_instance.number_elements(), gl.GL_UNSIGNED_INT, None)
+                # Draw mesh
+                core.bind_buffers()
+                prefab.bind_vertex_attributes()
+                prefab.bind_uniforms()
+                gl.glDrawElements(gl.GL_TRIANGLES, 3 * core.number_elements, gl.GL_UNSIGNED_INT, None)
 
     def resizeGL(self, width, height):
         self.camera.handle_resize(width, height)
@@ -175,82 +176,72 @@ class ViewerWidget(QOpenGLWidget):
     #################################################################################################
     # Mesh adding, updating and removing
 
-    def add_mesh_(self, vertices, faces):
-        self.meshes.append(GlMeshCore(vertices, faces))
+    def process_mesh_events(self):
+        while True:
+            try:
+                event = self.mesh_events.get(block=False)
+                event_type = event[0]
+                mesh_function = getattr(self, event_type + '_')
+                mesh_function(*event[1:])
+            except Empty:
+                return
+
+    def add_mesh_(self, core_id, vertices, faces):
+        self.mesh_groups[core_id.id] = MeshGroup(vertices, faces)
 
     def add_mesh(self, vertices, faces):
-        self.add_mesh_lock.acquire()
-        self.add_mesh_signal.emit(vertices, faces)
-        mesh_index = self.next_mesh
-        self.next_mesh += 1
-        self.add_mesh_lock.release()
-        return mesh_index
+        core_id = GlMeshCoreId()
+        self.mesh_events.put(['add_mesh', core_id, vertices, faces])
+        return core_id
 
-    def add_mesh_prefab_(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
+    def add_mesh_prefab_(self, prefab_id, shader='default', attributes={}, uniforms={}, fill=True):
         uniforms['lightDirection'] = self.light_direction
         uniforms['lightIntensity'] = self.light_intensity
         uniforms['ambientLighting'] = self.ambient_lighting
         if shader in self.shaders:
             try:
-                self.mesh_prefabs.append(GlMeshPrefab(self.meshes[mesh_index], attributes, uniforms, self.shaders[shader], fill=fill))
+                self.mesh_groups[prefab_id.core_id].add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill)
             except ValueError as err:
                 print(err)
-                self.mesh_prefabs.append(GlMeshPrefab(self.meshes[mesh_index], attributes, uniforms, self.shaders['default'], fill=fill))
+                self.mesh_groups[prefab_id.core_id].add_prefab(prefab_id, attributes, uniforms, self.shaders['default'], fill=fill)
 
-    def add_mesh_prefab(self, mesh_index, shader='default', attributes={}, uniforms={}, fill=True):
-        self.add_mesh_prefab_lock.acquire()
-        self.add_mesh_prefab_signal.emit(mesh_index, shader, attributes, uniforms, fill)
-        prefab_index = self.next_mesh_prefab
-        self.next_mesh_prefab += 1
-        self.add_mesh_prefab_lock.release()
-        return prefab_index
+    def add_mesh_prefab(self, core_id, shader='default', attributes={}, uniforms={}, fill=True):
+        prefab_id = GlMeshPrefabId(core_id)
+        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, attributes, uniforms, fill])
+        return prefab_id
 
-    def add_mesh_instance_(self, mesh_prefab_index, model_matrix):
-        self.mesh_instances.append(GlMeshInstance(self.mesh_prefabs[mesh_prefab_index], model_matrix))
+    def add_mesh_instance_(self, instance_id, model_matrix):
+        self.mesh_groups[instance_id.core_id].add_instance(instance_id, model_matrix)
+
+    def add_mesh_instance(self, prefab_id, model_matrix):
+        instance_id = GlMeshInstanceId(prefab_id)
+        self.mesh_events.put(['add_mesh_instance', instance_id, model_matrix])
+        self.update()
+        return instance_id
+
+    def update_mesh_vertices_(self, core_id, vertices):
+        self.mesh_groups[core_id.id].update_vertices(vertices)
+
+    def update_mesh_vertices(self, core_id, vertices):
+        self.mesh_events.put(['update_mesh_vertices', core_id, vertices])
         self.update()
 
-    def add_mesh_instance(self, mesh_prefab_index, model_matrix):
-        self.add_mesh_instance_lock.acquire()
-        self.add_mesh_instance_signal.emit(mesh_prefab_index, model_matrix)
-        instance_index = self.next_mesh_instance
-        self.next_mesh_instance += 1
-        self.add_mesh_instance_lock.release()
-        return instance_index
+    def update_mesh_instance_model_(self, instance_id, model):
+        self.mesh_groups[instance_id.core_id].get_instance(instance_id).set_model_matrix(model)
 
-    def update_mesh_vertices(self, index, vertices):
-        self.meshes[index].update_vertices(vertices)
+    def update_mesh_instance_model(self, instance_id, model):
+        self.mesh_events.put(['update_mesh_instance_model', instance_id, model])
         self.update()
 
-    def update_mesh_vertices_(self, index, vertices):
-        self.update_mesh_vertices_signal.emit(index, vertices)
+    def set_mesh_instance_visibility_(self, instance_id, visibility):
+        self.mesh_groups[instance_id.core_id].get_instance(instance_id).set_visibility(visibility)
 
-    def update_mesh_instance_model(self, instance_index, model):
-        self.update_mesh_instance_model_signal.emit(instance_index, model)
-
-    def update_mesh_instance_model_(self, instance_index, model):
-        self.mesh_instances[instance_index].set_model_matrix(model)
+    def set_mesh_instance_visibility(self, instance_id, visibility):
+        self.mesh_events.put(['set_mesh_instance_visibility', instance_id, visibility])
         self.update()
 
-    def set_mesh_instance_visibility(self, instance_index, visibility):
-        self.mesh_instances[instance_index].set_visibility(visibility)
-        self.update()
-
-    def get_mesh_instance_visibility(self, instance_index):
-        return self.mesh_instances[instance_index].get_visibility()
-
-    def remove_mesh(self, mesh_index):
-        if len(self.meshes) > mesh_index:
-            mesh_to_remove = self.meshes[mesh_index]
-            self.meshes[mesh_index] = None
-            for index, instance in enumerate(self.mesh_instances):
-                if instance.mesh == mesh_to_remove:
-                    self.mesh_instances[index] = None
-
-    def clear_all(self):
-        self.meshes = []
-        self.mesh_instances = []
-        self.next_mesh = 1
-        self.next_mesh_instance = 1
+    def get_mesh_instance_visibility(self, instance_id):
+        return self.mesh_groups[instance_id.core_id].get_instance(instance_id).get_visibility()
 
     #################################################################################################
 

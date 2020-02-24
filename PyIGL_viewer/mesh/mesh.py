@@ -1,9 +1,18 @@
 from OpenGL import GL as gl
 from ..viewer.shader import ShaderProgram
+from itertools import chain
+
+import datetime
+import uuid
+
+
+class GlMeshCoreId:
+    def __init__(self):
+        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
 
 class GlMeshCore:
-    def __init__(self, vertices, faces, shader='default'):
+    def __init__(self, vertices, faces):
         self.number_vertices = vertices.shape[0]
         self.number_elements = faces.shape[0]
         self.vertex_buffer = gl.arrays.vbo.VBO(vertices)
@@ -19,10 +28,14 @@ class GlMeshCore:
         self.vertex_buffer.set_array(vertices)
         
 
+class GlMeshPrefabId:
+    def __init__(self, core_id):
+        self.core_id = core_id.id
+        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
+
 class GlMeshPrefab:
-    def __init__(self, mesh_core, attributes, uniforms, shader, fill):
+    def __init__(self, attributes, uniforms, shader, fill):
         self.fill = fill
-        self.mesh = mesh_core
         self.shader = shader
         self.attributes = attributes
         self.uniforms = uniforms
@@ -41,17 +54,10 @@ class GlMeshPrefab:
             else:
                 self.uniform_values[uniform] = uniforms[uniform]
 
-    def number_vertices(self):
-        return self.mesh.number_vertices
-
-    def number_elements(self):
-        return self.mesh.number_elements
-
     def get_shader(self):
         return self.shader
 
     def bind_vertex_attributes(self):
-        self.mesh.bind_buffers()
         for attribute in self.vertex_buffers:
             attribute_location = self.shader.attributes[attribute]
             gl.glEnableVertexAttribArray(attribute_location)
@@ -86,18 +92,17 @@ class GlMeshPrefab:
             self.bind_uniform_(uniform_location, self.uniform_values[uniform])
 
 
+class GlMeshInstanceId:
+    def __init__(self, prefab_id):
+        self.core_id = prefab_id.core_id
+        self.prefab_id = prefab_id.id
+        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
+
+
 class GlMeshInstance:
-    def __init__(self, mesh_prefab, model_matrix):
-        self.mesh = mesh_prefab
+    def __init__(self, model_matrix):
         self.model_matrix = model_matrix
-
         self.visibility= True
-
-    def number_vertices(self):
-        return self.mesh.number_vertices()
-
-    def number_elements(self):
-        return self.mesh.number_elements()
 
     def set_model_matrix(self, new_model):
         self.model_matrix = new_model
@@ -111,12 +116,51 @@ class GlMeshInstance:
     def set_visibility(self, visibility):
         self.visibility = visibility
 
-    def get_shader(self):
-        return self.mesh.shader
+class MeshGroup:
+    def __init__(self, vertices, faces):
+        self.mesh_core = GlMeshCore(vertices, faces)
+        self.mesh_prefabs = {}
+        self.mesh_instances = {}
 
+    def add_prefab(self, prefab_id, attributes, uniforms, shader, fill):
+        self.mesh_prefabs[prefab_id.id] = GlMeshPrefab(attributes, uniforms, shader, fill)
+
+    def add_instance(self, instance_id, model_matrix):
+        if instance_id.prefab_id not in self.mesh_instances:
+            self.mesh_instances[instance_id.prefab_id] = {}
+        self.mesh_instances[instance_id.prefab_id][instance_id.id] = GlMeshInstance(model_matrix)
+
+    def get_prefab(self, prefab_id):
+        return self.mesh_prefabs[prefab_id.id]
+
+    def get_instance(self, instance_id):
+        return self.mesh_instances[instance_id.prefab_id][instance_id.id]
+
+    def get_prefab_length(self):
+        return len(self.mesh_prefabs)
+
+    def get_instance_length(self, prefab_id):
+        return len(self.mesh_instances[prefab_id.id])
+
+    def number_vertices(self):
+        return self.mesh_core.number_vertices
+
+    def number_elements(self):
+        return self.mesh_core.number_elements
+    
     def bind_vertex_attributes(self):
-        self.mesh.bind_vertex_attributes()
+        self.mesh_core.bind_buffers()
 
-    def bind_uniforms(self):
-        self.mesh.bind_uniforms()
+    def update_vertices(self, vertices):
+        self.mesh_core.update_vertices(vertices)
+
+    def __iter__(self):
+        iterators = []
+        for prefab_id, prefab in self.mesh_prefabs.items():
+            count_instances = len(self.mesh_instances[prefab_id])
+            cores = [self.mesh_core] * count_instances
+            prefabs = [prefab] * count_instances
+            instances = self.mesh_instances[prefab_id].values()
+            iterators.append(zip(cores, prefabs, instances))
+        return chain(*iterators)
 

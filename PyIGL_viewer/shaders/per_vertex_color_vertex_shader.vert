@@ -7,6 +7,7 @@ in vec3 vertexColor;
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
+uniform mat4 mvp;
 
 out vec4 outNormal;
 out vec3 color;
@@ -17,5 +18,5 @@ void main()
     outNormal.w = 0.0;
     outNormal = model * outNormal;
     color = vertexColor;
-    gl_Position = projection * view * model * position;
+    gl_Position = mvp * position;
 }
