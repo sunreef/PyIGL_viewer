@@ -126,7 +126,7 @@ class ViewerWidget(QOpenGLWidget):
                 core.bind_buffers()
                 prefab.bind_vertex_attributes()
                 prefab.bind_uniforms()
-                gl.glDrawElements(gl.GL_TRIANGLES, 3 * core.number_elements, gl.GL_UNSIGNED_INT, None)
+                gl.glDrawElements(core.drawing_mode, core.face_size * core.number_elements, gl.GL_UNSIGNED_INT, None)
 
     def resizeGL(self, width, height):
         self.camera.handle_resize(width, height)
@@ -187,12 +187,20 @@ class ViewerWidget(QOpenGLWidget):
                 return
 
     def add_mesh_(self, core_id, vertices, faces):
-        self.mesh_groups[core_id.id] = MeshGroup(vertices, faces)
+        self.mesh_groups[core_id.core_id] = MeshGroup(vertices, faces)
 
     def add_mesh(self, vertices, faces):
         core_id = GlMeshCoreId()
         self.mesh_events.put(['add_mesh', core_id, vertices, faces])
         return core_id
+
+    # def add_quad_wireframe(self, vertices, faces, shader='default', attributes={}, uniforms={}, model_matrix=np.eye(4, dtype='f')):
+        # core_id = self.add_mesh(vertices, faces)
+        # prefab_id = self.add_mesh_prefab(core_id, shader=shader, attributes, uniforms, fill=False)
+        # instance_id = self.add_mesh_instance(prefab_id, model_matrix)
+
+    def get_mesh(self, mesh_id):
+        return self.mesh_groups[mesh_id.core_id]
 
     def add_mesh_prefab_(self, prefab_id, shader='default', attributes={}, uniforms={}, fill=True):
         uniforms['lightDirection'] = self.light_direction
@@ -200,10 +208,10 @@ class ViewerWidget(QOpenGLWidget):
         uniforms['ambientLighting'] = self.ambient_lighting
         if shader in self.shaders:
             try:
-                self.mesh_groups[prefab_id.core_id].add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill)
+                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill)
             except ValueError as err:
                 print(err)
-                self.mesh_groups[prefab_id.core_id].add_prefab(prefab_id, attributes, uniforms, self.shaders['default'], fill=fill)
+                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders['default'], fill=fill)
 
     def add_mesh_prefab(self, core_id, shader='default', attributes={}, uniforms={}, fill=True):
         prefab_id = GlMeshPrefabId(core_id)
@@ -211,7 +219,7 @@ class ViewerWidget(QOpenGLWidget):
         return prefab_id
 
     def add_mesh_instance_(self, instance_id, model_matrix):
-        self.mesh_groups[instance_id.core_id].add_instance(instance_id, model_matrix)
+        self.get_mesh(instance_id).add_instance(instance_id, model_matrix)
 
     def add_mesh_instance(self, prefab_id, model_matrix):
         instance_id = GlMeshInstanceId(prefab_id)
@@ -220,51 +228,49 @@ class ViewerWidget(QOpenGLWidget):
         return instance_id
 
     def update_mesh_vertices_(self, core_id, vertices):
-        self.mesh_groups[core_id.id].update_vertices(vertices)
+        self.get_mesh(core_id).update_vertices(vertices)
 
     def update_mesh_vertices(self, core_id, vertices):
         self.mesh_events.put(['update_mesh_vertices', core_id, vertices])
         self.update()
 
     def update_mesh_instance_model_(self, instance_id, model):
-        self.mesh_groups[instance_id.core_id].get_instance(instance_id).set_model_matrix(model)
+        self.get_mesh(instance_id).get_instance(instance_id).set_model_matrix(model)
 
     def update_mesh_instance_model(self, instance_id, model):
         self.mesh_events.put(['update_mesh_instance_model', instance_id, model])
         self.update()
 
     def set_mesh_instance_visibility_(self, instance_id, visibility):
-        self.mesh_groups[instance_id.core_id].get_instance(instance_id).set_visibility(visibility)
+        self.get_mesh(instance_id).get_instance(instance_id).set_visibility(visibility)
 
     def set_mesh_instance_visibility(self, instance_id, visibility):
         self.mesh_events.put(['set_mesh_instance_visibility', instance_id, visibility])
         self.update()
 
     def get_mesh_instance_visibility(self, instance_id):
-        return self.mesh_groups[instance_id.core_id].get_instance(instance_id).get_visibility()
+        return self.get_mesh(instance_id).get_instance(instance_id).get_visibility()
 
-    def remove_mesh_core_(self, core_id):
-        self.mesh_groups.pop(core_id.id)
+    def remove_mesh_(self, core_id):
+        self.mesh_groups.pop(core_id.core_id)
 
-    def remove_mesh_core(self, core_id):
-        self.mesh_events.put(['remove_mesh_core', core_id])
+    def remove_mesh(self, core_id):
+        self.mesh_events.put(['remove_mesh', core_id])
         self.update()
 
     def remove_mesh_prefab_(self, prefab_id):
-        self.mesh_groups[prefab_id.core_id].remove_prefab(prefab_id)
+        self.get_mesh(prefab_id).remove_prefab(prefab_id)
 
-    def remove_mesh_instance(self, instance_id):
-        self.mesh_events.put(['remove_mesh_instance', instance_id])
+    def remove_mesh_prefab(self, prefab_id):
+        self.mesh_events.put(['remove_mesh_prefab', prefab_id])
         self.update()
 
     def remove_mesh_instance_(self, instance_id):
-        self.mesh_groups[instance_id.core_id].remove_instance(instance_id)
+        self.get_mesh(instance_id).remove_instance(instance_id)
 
     def remove_mesh_instance(self, instance_id):
         self.mesh_events.put(['remove_mesh_instance', instance_id])
         self.update()
-        
-
 
     #################################################################################################
 

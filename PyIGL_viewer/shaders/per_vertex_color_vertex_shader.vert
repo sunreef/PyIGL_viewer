@@ -16,7 +16,8 @@ void main()
 {
     outNormal = normal;
     outNormal.w = 0.0;
-    outNormal = model * outNormal;
+    outNormal = view * model * outNormal;
+    outNormal = normalize(outNormal);
     color = vertexColor;
     gl_Position = mvp * position;
 }

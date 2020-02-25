@@ -1,6 +1,7 @@
 from OpenGL import GL as gl
 from ..viewer.shader import ShaderProgram
 from itertools import chain
+import numpy as np
 
 import datetime
 import uuid
@@ -11,13 +12,26 @@ import uuid
 
 class GlMeshCoreId:
     def __init__(self):
-        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
+        self.core_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
 
 class GlMeshCore:
     def __init__(self, vertices, faces):
         self.number_vertices = vertices.shape[0]
         self.number_elements = faces.shape[0]
+
+        self.face_size = faces.shape[1]
+        if self.face_size == 3:
+            self.drawing_mode = gl.GL_TRIANGLES 
+        else:
+            self.drawing_mode = gl.GL_LINES 
+            new_faces = np.zeros((self.number_elements, 2 * self.face_size), dtype=np.int32)
+            for s in range(self.face_size):
+                new_faces[:, 2 * s] = faces[:, s]
+                new_faces[:, 2 * s - 1] = faces[:, s]
+            faces = new_faces
+            self.face_size *= 2
+
         self.vertex_buffer = gl.arrays.vbo.VBO(vertices)
         self.element_buffer = gl.arrays.vbo.VBO(faces, target=gl.GL_ELEMENT_ARRAY_BUFFER)
 
@@ -38,8 +52,8 @@ class GlMeshCore:
 
 class GlMeshPrefabId:
     def __init__(self, core_id):
-        self.core_id = core_id.id
-        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
+        self.core_id = core_id.core_id
+        self.prefab_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
 class GlMeshPrefab:
     def __init__(self, attributes, uniforms, shader, fill):
@@ -108,8 +122,8 @@ class GlMeshPrefab:
 class GlMeshInstanceId:
     def __init__(self, prefab_id):
         self.core_id = prefab_id.core_id
-        self.prefab_id = prefab_id.id
-        self.id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
+        self.prefab_id = prefab_id.prefab_id
+        self.instance_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
 
 class GlMeshInstance:
@@ -141,31 +155,32 @@ class MeshGroup:
         self.mesh_instances = {}
 
     def add_prefab(self, prefab_id, attributes, uniforms, shader, fill):
-        self.mesh_prefabs[prefab_id.id] = GlMeshPrefab(attributes, uniforms, shader, fill)
+        self.mesh_prefabs[prefab_id.prefab_id] = GlMeshPrefab(attributes, uniforms, shader, fill)
+        self.mesh_instances[prefab_id.prefab_id] = {}
 
     def add_instance(self, instance_id, model_matrix):
-        if instance_id.prefab_id not in self.mesh_instances:
-            self.mesh_instances[instance_id.prefab_id] = {}
-        self.mesh_instances[instance_id.prefab_id][instance_id.id] = GlMeshInstance(model_matrix)
+        # if instance_id.prefab_id not in self.mesh_instances:
+            # self.mesh_instances[instance_id.prefab_id] = {}
+        self.mesh_instances[instance_id.prefab_id][instance_id.instance_id] = GlMeshInstance(model_matrix)
 
     def get_prefab(self, prefab_id):
-        return self.mesh_prefabs[prefab_id.id]
+        return self.mesh_prefabs[prefab_id.prefab_id]
 
     def get_instance(self, instance_id):
-        return self.mesh_instances[instance_id.prefab_id][instance_id.id]
+        return self.mesh_instances[instance_id.prefab_id][instance_id.instance_id]
 
     def remove_prefab(self, prefab_id):
-        self.mesh_prefabs.pop(prefab_id.id)
-        self.mesh_instances.pop(prefab_id.id)
+        self.mesh_prefabs.pop(prefab_id.prefab_id)
+        self.mesh_instances.pop(prefab_id.prefab_id)
 
     def remove_instance(self, instance_id):
-        self.mesh_instances[instance_id.prefab_id].pop(instance_id.id)
+        self.mesh_instances[instance_id.prefab_id].pop(instance_id.instance_id)
 
     def get_prefab_length(self):
         return len(self.mesh_prefabs)
 
     def get_instance_length(self, prefab_id):
-        return len(self.mesh_instances[prefab_id.id])
+        return len(self.mesh_instances[prefab_id.prefab_id])
 
     def number_vertices(self):
         return self.mesh_core.number_vertices
