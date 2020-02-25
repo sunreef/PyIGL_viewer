@@ -288,6 +288,10 @@ class ViewerWidget(QOpenGLWidget):
         self.draw_wireframe = not self.draw_wireframe
         self.update()
 
+    def save_screenshot(self, path):
+        current_frame = self.grabFramebuffer()
+        current_frame.save(path)
+
     #################################################################################################
 
 
