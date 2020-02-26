@@ -5,7 +5,7 @@ from .ui_widgets import PropertyWidget
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QGridLayout, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QGridLayout, QPushButton, QLineEdit, QLabel
 
 
 viewer_palette = {
@@ -18,6 +18,7 @@ viewer_palette = {
 
 class Viewer(QMainWindow):
     close_signal = pyqtSignal()
+    screenshot_signal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -29,8 +30,8 @@ class Viewer(QMainWindow):
         self.main_layout = QGridLayout()
         self.main_layout.setHorizontalSpacing(2)
         self.main_layout.setVerticalSpacing(2)
-        widget = QWidget()
-        widget.setLayout(self.main_layout)
+        self.central_widget = QWidget()
+        self.central_widget.setLayout(self.main_layout)
 
         menu_widget = QFrame(self)
         menu_widget.setFrameStyle(QFrame.Panel | QFrame.Raised)
@@ -44,7 +45,9 @@ class Viewer(QMainWindow):
         self.menu_properties = {}
         self.current_menu_layout = self.menu_layout
 
-        self.setCentralWidget(widget)
+        self.setCentralWidget(self.central_widget)
+
+        self.screenshot_signal.connect(self.save_screenshot_)
 
     def add_viewer_widget(self, x, y, row_span=1, column_span=1):
         group_layout = QVBoxLayout()
@@ -134,5 +137,11 @@ class Viewer(QMainWindow):
     def closeEvent(self, event):
         self.close_signal.emit()
 
+    def save_screenshot_(self, path):
+        screenshot = QApplication.primaryScreen().grabWindow(self.central_widget.winId())
+        screenshot.save(path, 'png')
+
+    def save_screenshot(self, path):
+        self.screenshot_signal.emit(path)
 
 
