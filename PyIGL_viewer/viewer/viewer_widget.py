@@ -17,12 +17,6 @@ from .camera import Camera
 from ..mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance, MeshGroup, GlMeshCoreId, GlMeshPrefabId, GlMeshInstanceId
 
 class ViewerWidget(QOpenGLWidget):
-    add_mesh_signal = pyqtSignal(np.ndarray, np.ndarray)
-    add_mesh_prefab_signal = pyqtSignal(int, int, str, dict, dict, bool)
-    add_mesh_instance_signal = pyqtSignal(int, int, int, np.ndarray)
-    update_mesh_vertices_signal = pyqtSignal(int, np.ndarray)
-    update_mesh_instance_model_signal = pyqtSignal(int, np.ndarray)
-
     def __init__(self, parent):
         super(ViewerWidget, self).__init__(parent)
 
@@ -42,7 +36,6 @@ class ViewerWidget(QOpenGLWidget):
         self.shaders = {}
 
         # Mesh attributes
-        self.mesh_events = Queue()
         self.mesh_groups = {}
         self.draw_wireframe = True
 
@@ -50,18 +43,9 @@ class ViewerWidget(QOpenGLWidget):
         self.mouse_handler = MouseHandler()
         self.setMouseTracking(True)
 
-        # Mesh signal connections
-        self.add_mesh_lock = threading.Lock()
-        self.add_mesh_signal.connect(self.add_mesh_)
-
-        self.add_mesh_prefab_lock = threading.Lock()
-        self.add_mesh_prefab_signal.connect(self.add_mesh_prefab_)
-
-        self.add_mesh_instance_lock = threading.Lock()
-        self.add_mesh_instance_signal.connect(self.add_mesh_instance_)
-
-        self.update_mesh_vertices_signal.connect(self.update_mesh_vertices_)
-        self.update_mesh_instance_model_signal.connect(self.update_mesh_instance_model_)
+        # Event queues
+        self.mesh_events = Queue()
+        self.post_draw_events = Queue()
 
     def add_shaders(self):       
         current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -83,10 +67,9 @@ class ViewerWidget(QOpenGLWidget):
         gl.glEnable(gl.GL_MULTISAMPLE)
 
     def paintGL(self):
-        gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-
         self.process_mesh_events()
 
+        gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         view_matrix = self.camera.get_view_matrix()
         projection_matrix = self.camera.get_projection_matrix()
         for group in self.mesh_groups.values():
@@ -127,6 +110,8 @@ class ViewerWidget(QOpenGLWidget):
                 prefab.bind_vertex_attributes()
                 prefab.bind_uniforms()
                 gl.glDrawElements(core.drawing_mode, core.face_size * core.number_elements, gl.GL_UNSIGNED_INT, None)
+
+        self.process_post_draw_events()
 
     def resizeGL(self, width, height):
         self.camera.handle_resize(width, height)
@@ -288,9 +273,23 @@ class ViewerWidget(QOpenGLWidget):
         self.draw_wireframe = not self.draw_wireframe
         self.update()
 
-    def save_screenshot(self, path):
+    def process_post_draw_events(self):
+        while True:
+            try:
+                event = self.post_draw_events.get(block=False)
+                event_type = event[0]
+                mesh_function = getattr(self, event_type + '_')
+                mesh_function(*event[1:])
+            except Empty:
+                return
+
+    def save_screenshot_(self, path):
         current_frame = self.grabFramebuffer()
         current_frame.save(path)
+
+    def save_screenshot(self, path):
+        self.post_draw_events.put(['save_screenshot', path])
+        self.update()
 
     #################################################################################################
 
