@@ -26,7 +26,7 @@ In this simple example, we use LibIGL python bindings to load an OBJ file and di
 
 ```python
 import igl
-form PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication
 from PyIGL_viewer import Viewer
 
 # Path to your OBJ file stored in path_to_obj_file 
