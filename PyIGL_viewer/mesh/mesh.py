@@ -14,7 +14,6 @@ class GlMeshCoreId:
     def __init__(self):
         self.core_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
-
 class GlMeshCore:
     def __init__(self, vertices, faces):
         self.number_vertices = vertices.shape[0]
@@ -124,7 +123,6 @@ class GlMeshInstanceId:
         self.core_id = prefab_id.core_id
         self.prefab_id = prefab_id.prefab_id
         self.instance_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
-
 
 class GlMeshInstance:
     def __init__(self, model_matrix):

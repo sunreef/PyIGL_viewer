@@ -1,7 +1,7 @@
 import sys
 
 from .viewer_widget import ViewerWidget
-from .ui_widgets import PropertyWidget
+from .ui_widgets import PropertyWidget, LegendWidget
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
@@ -19,6 +19,7 @@ viewer_palette = {
 class Viewer(QMainWindow):
     close_signal = pyqtSignal()
     screenshot_signal = pyqtSignal(str)
+    legend_signal = pyqtSignal(list, list)
 
     def __init__(self):
         super().__init__()
@@ -40,6 +41,7 @@ class Viewer(QMainWindow):
         self.menu_layout.setAlignment(Qt.AlignTop)
         menu_widget.setLayout(self.menu_layout)
         self.main_layout.addWidget(menu_widget, 0, 0, -1, 1)
+        self.menu_layout.setContentsMargins(2, 2, 2, 2)
 
         self.viewer_widgets = []
         self.menu_properties = {}
@@ -48,6 +50,7 @@ class Viewer(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.screenshot_signal.connect(self.save_screenshot_)
+        self.legend_signal.connect(self.add_ui_legend_)
 
     def add_viewer_widget(self, x, y, row_span=1, column_span=1):
         group_layout = QVBoxLayout()
@@ -83,6 +86,7 @@ class Viewer(QMainWindow):
         group_label = QLabel(name, widget)
         group_layout.addWidget(group_label)
         group_layout.setAlignment(group_label, Qt.AlignHCenter)
+        group_layout.setContentsMargins(2, 2, 2, 2)
         self.menu_layout.addWidget(widget)
         self.current_menu_layout = group_layout
 
@@ -101,6 +105,13 @@ class Viewer(QMainWindow):
         widget = PropertyWidget(text, initial_value, read_only)
         self.menu_properties[property_name] = widget
         self.current_menu_layout.addWidget(widget)
+
+    def add_ui_legend_(self, names, colors):
+        legend_widget = LegendWidget(names, colors)
+        self.current_menu_layout.addWidget(legend_widget)
+
+    def add_ui_legend(self, names, colors):
+        self.legend_signal.emit(names, colors)
 
     def set_float_property(self, name, new_value):
         if name in self.menu_properties:
@@ -143,5 +154,4 @@ class Viewer(QMainWindow):
 
     def save_screenshot(self, path):
         self.screenshot_signal.emit(path)
-
 

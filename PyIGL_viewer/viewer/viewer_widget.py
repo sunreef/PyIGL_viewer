@@ -110,7 +110,6 @@ class ViewerWidget(QOpenGLWidget):
                 prefab.bind_vertex_attributes()
                 prefab.bind_uniforms()
                 gl.glDrawElements(core.drawing_mode, core.face_size * core.number_elements, gl.GL_UNSIGNED_INT, None)
-
         self.process_post_draw_events()
 
     def resizeGL(self, width, height):
