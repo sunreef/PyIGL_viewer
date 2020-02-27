@@ -25,6 +25,7 @@ To use this module, you have two options:
 In this simple example, we use [LibIGL Python bindings](https://github.com/libigl/libigl-python-bindings) to load an OBJ file and display it with our default shader.
 
 ```python
+import numpy as np
 import igl
 from PyQt5.QtWidgets import QApplication
 from PyIGL_viewer import Viewer
@@ -48,6 +49,10 @@ def screenshot_function():
 viewer.add_ui_button("Take Screenshot", screenshot_function)
 
 # Add a mesh to our viewer widget
+# This requires three steps:
+# - Adding the mesh vertices and faces
+# - Adding a mesh prefab that contains shader attributes and uniform values
+# - Adding an instance of our prefab whose position is defined by a model matrix
 mesh_index = viewer_widget.add_mesh(vertices, faces)
 mesh_prefab_index = viewer_widget.add_mesh_prefab(mesh_index, 'default')
 instance_index = viewer_widget.add_mesh_instance(mesh_prefab_index, np.eye(4, dtype='f'))
