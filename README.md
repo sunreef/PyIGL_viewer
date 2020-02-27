@@ -60,6 +60,10 @@ wireframe_instance_index = viewer_widget.add_mesh_instance(wireframe_mesh_prefab
 viewer_app.exec()
 ```
 
+The image created when clicking the `Take Screenshot` button should be similar to the following image:
+
+![Curved corners screenshot](images/curved_corners_screenshot.png)
+
 
 ## License
 
