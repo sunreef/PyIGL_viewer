@@ -22,7 +22,7 @@ To use this module, you have two options:
 
 ### Usage
 
-In this simple example, we use LibIGL python bindings to load an OBJ file and display it with our default shader.
+In this simple example, we use [LibIGL Python bindings](https://github.com/libigl/libigl-python-bindings) to load an OBJ file and display it with our default shader.
 
 ```python
 import igl
