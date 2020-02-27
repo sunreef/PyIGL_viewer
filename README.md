@@ -3,6 +3,8 @@
 An OpenGL renderer written from scratch in Python using PyQt5 and PyOpenGL.
 Its purpose is to simplify mesh visualization for Python graphics research projects.
 
+![Viewer screenshot](images/viewer_screenshot.png)
+
 ## Getting Started
 
 TODO
