@@ -24,7 +24,7 @@ To use this module, you have two options:
 
 In this simple example, we use LibIGL python bindings to load an OBJ file and display it with our default shader.
 
-```
+```python
 import igl
 form PyQt5.QtWidgets import QApplication
 from PyIGL_viewer import Viewer
