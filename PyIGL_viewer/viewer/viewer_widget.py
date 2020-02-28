@@ -122,7 +122,7 @@ class ViewerWidget(QOpenGLWidget):
         if e.key() == Qt.Key_Escape:
             sys.stdout.close()
             sys.stderr.close()
-            self.parent.close_signal.emit()
+            self.parent().parent().close_signal.emit()
             exit()
         if e.key() == Qt.Key_R:
             self.camera.reset()
@@ -135,15 +135,17 @@ class ViewerWidget(QOpenGLWidget):
 
     def mouseReleaseEvent(self, e):
         self.mouse_handler.add_mouse_release_event(e)
+        self.camera.finalize_transformation()
+        self.update()
 
     def mouseMoveEvent(self, e):
         self.mouse_handler.add_mouse_move_event(e)
         if self.mouse_handler.button_pressed(Qt.LeftButton):
-            delta = -0.2 * self.mouse_handler.delta_mouse()
+            delta = self.mouse_handler.pressed_delta_mouse(Qt.LeftButton)
             self.camera.handle_rotation(delta)
             self.update()
         elif self.mouse_handler.button_pressed(Qt.RightButton):
-            delta = self.mouse_handler.delta_mouse()
+            delta = self.mouse_handler.pressed_delta_mouse(Qt.RightButton)
             self.camera.handle_translation(delta)
             self.update()
 
