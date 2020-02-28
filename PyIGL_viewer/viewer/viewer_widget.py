@@ -122,7 +122,7 @@ class ViewerWidget(QOpenGLWidget):
         if e.key() == Qt.Key_Escape:
             sys.stdout.close()
             sys.stderr.close()
-            self.parent().parent().close_signal.emit()
+            self.parent().parent().parent().close_signal.emit()
             exit()
         if e.key() == Qt.Key_R:
             self.camera.reset()
