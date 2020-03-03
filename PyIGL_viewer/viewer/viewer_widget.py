@@ -188,20 +188,28 @@ class ViewerWidget(QOpenGLWidget):
     def get_mesh(self, mesh_id):
         return self.mesh_groups[mesh_id.core_id]
 
-    def add_mesh_prefab_(self, prefab_id, shader='default', attributes={}, uniforms={}, fill=True):
+    def get_mesh_prefab(self, prefab_id):
+        return self.get_mesh(prefab_id).get_prefab(prefab_id)
+
+    def get_mesh_instance(self, instance_id):
+        return self.get_mesh(instance_id).get_instance(instance_id)
+
+    def add_mesh_prefab_(self, prefab_id, shader='default', attributes={}, uniforms={}, fill=True, copy_from=None):
         uniforms['lightDirection'] = self.light_direction
         uniforms['lightIntensity'] = self.light_intensity
         uniforms['ambientLighting'] = self.ambient_lighting
         if shader in self.shaders:
             try:
-                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill)
+                if copy_from is not None:
+                    copy_from = self.get_mesh_prefab(copy_from)
+                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill, copy_from=copy_from)
             except ValueError as err:
                 print(err)
                 self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders['default'], fill=fill)
 
-    def add_mesh_prefab(self, core_id, shader='default', attributes={}, uniforms={}, fill=True):
+    def add_mesh_prefab(self, core_id, shader='default', attributes={}, uniforms={}, fill=True, copy_from=None):
         prefab_id = GlMeshPrefabId(core_id)
-        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, attributes, uniforms, fill])
+        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, attributes, uniforms, fill, copy_from])
         return prefab_id
 
     def add_mesh_instance_(self, instance_id, model_matrix):
@@ -218,6 +226,13 @@ class ViewerWidget(QOpenGLWidget):
 
     def update_mesh_vertices(self, core_id, vertices):
         self.mesh_events.put(['update_mesh_vertices', core_id, vertices])
+        self.update()
+
+    def update_mesh_prefab_uniform_(self, prefab_id, name, value):
+        self.get_mesh(prefab_id).get_prefab(prefab_id).update_uniform(name, value)
+
+    def update_mesh_prefab_uniform(self, prefab_id, name, value):
+        self.mesh_events.put(['update_mesh_prefab_uniform_', prefab_id, name, value])
         self.update()
 
     def update_mesh_instance_model_(self, instance_id, model):

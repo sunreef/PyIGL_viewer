@@ -55,7 +55,7 @@ class GlMeshPrefabId:
         self.prefab_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + str(uuid.uuid4())
 
 class GlMeshPrefab:
-    def __init__(self, attributes, uniforms, shader, fill):
+    def __init__(self, attributes, uniforms, shader, fill, copy_from=None):
         self.fill = fill
         self.shader = shader
         self.attributes = attributes
@@ -64,14 +64,20 @@ class GlMeshPrefab:
         self.vertex_buffers = {}
         for attribute in self.shader.attributes:
             if not attribute in attributes:
-                raise ValueError(f'Attribute {attribute} missing from mesh instance data')
+                if copy_from is not None and attribute in copy_from.vertex_buffers:
+                    self.vertex_buffers[attribute] = copy_from.vertex_buffers[attribute]
+                else:
+                    raise ValueError(f'Attribute {attribute} missing from mesh prefab data')
             else:
                 self.vertex_buffers[attribute] = (gl.arrays.vbo.VBO(attributes[attribute]), attributes[attribute].shape[1])
 
         self.uniform_values = {}
         for uniform in self.shader.uniforms:
             if not uniform in uniforms:
-                raise ValueError(f'Uniform {uniform} missing from mesh instance data')
+                if copy_from is not None and uniform in copy_from.uniform_values:
+                    self.uniform_values[uniform] = copy_from.uniform_values[uniform]
+                else:
+                    raise ValueError(f'Uniform {uniform} missing from mesh prefab data')
             else:
                 self.uniform_values[uniform] = uniforms[uniform]
 
@@ -111,6 +117,12 @@ class GlMeshPrefab:
         for uniform in self.uniform_values:
             uniform_location = self.shader.uniforms[uniform]
             self.bind_uniform_(uniform_location, self.uniform_values[uniform])
+
+    def update_uniform(self, name, value):
+        self.uniform_values[name] = value
+
+    def update_attribute(self, name, value):
+        self.vertex_buffers[name] = value
 
 #################################################################################################
 
@@ -152,8 +164,8 @@ class MeshGroup:
         self.mesh_prefabs = {}
         self.mesh_instances = {}
 
-    def add_prefab(self, prefab_id, attributes, uniforms, shader, fill):
-        self.mesh_prefabs[prefab_id.prefab_id] = GlMeshPrefab(attributes, uniforms, shader, fill)
+    def add_prefab(self, prefab_id, attributes, uniforms, shader, fill, copy_from):
+        self.mesh_prefabs[prefab_id.prefab_id] = GlMeshPrefab(attributes, uniforms, shader, fill, copy_from)
         self.mesh_instances[prefab_id.prefab_id] = {}
 
     def add_instance(self, instance_id, model_matrix):
