@@ -20,6 +20,8 @@ class ViewerWidget(QOpenGLWidget):
     def __init__(self, parent):
         super(ViewerWidget, self).__init__(parent)
 
+        self.main_window = parent
+
         # Add antialiasing
         format = QSurfaceFormat()
         format.setSamples(8)
@@ -122,7 +124,7 @@ class ViewerWidget(QOpenGLWidget):
         if e.key() == Qt.Key_Escape:
             sys.stdout.close()
             sys.stderr.close()
-            self.parent().parent().parent().close_signal.emit()
+            self.main_window.close_signal.emit()
             exit()
         if e.key() == Qt.Key_R:
             self.camera.reset()
@@ -180,11 +182,6 @@ class ViewerWidget(QOpenGLWidget):
         self.mesh_events.put(['add_mesh', core_id, vertices, faces])
         return core_id
 
-    # def add_quad_wireframe(self, vertices, faces, shader='default', attributes={}, uniforms={}, model_matrix=np.eye(4, dtype='f')):
-        # core_id = self.add_mesh(vertices, faces)
-        # prefab_id = self.add_mesh_prefab(core_id, shader=shader, attributes, uniforms, fill=False)
-        # instance_id = self.add_mesh_instance(prefab_id, model_matrix)
-
     def get_mesh(self, mesh_id):
         return self.mesh_groups[mesh_id.core_id]
 
@@ -218,7 +215,6 @@ class ViewerWidget(QOpenGLWidget):
     def add_mesh_instance(self, prefab_id, model_matrix):
         instance_id = GlMeshInstanceId(prefab_id)
         self.mesh_events.put(['add_mesh_instance', instance_id, model_matrix])
-        self.update()
         return instance_id
 
     def update_mesh_vertices_(self, core_id, vertices):
@@ -226,28 +222,30 @@ class ViewerWidget(QOpenGLWidget):
 
     def update_mesh_vertices(self, core_id, vertices):
         self.mesh_events.put(['update_mesh_vertices', core_id, vertices])
-        self.update()
 
     def update_mesh_prefab_uniform_(self, prefab_id, name, value):
         self.get_mesh(prefab_id).get_prefab(prefab_id).update_uniform(name, value)
 
     def update_mesh_prefab_uniform(self, prefab_id, name, value):
-        self.mesh_events.put(['update_mesh_prefab_uniform_', prefab_id, name, value])
-        self.update()
+        self.mesh_events.put(['update_mesh_prefab_uniform', prefab_id, name, value])
+
+    def update_mesh_prefab_attribute_(self, prefab_id, name, value):
+        self.get_mesh(prefab_id).get_prefab(prefab_id).update_attribute(name, value)
+
+    def update_mesh_prefab_attribute(self, prefab_id, name, value):
+        self.mesh_events.put(['update_mesh_prefab_attribute', prefab_id, name, value])
 
     def update_mesh_instance_model_(self, instance_id, model):
         self.get_mesh(instance_id).get_instance(instance_id).set_model_matrix(model)
 
     def update_mesh_instance_model(self, instance_id, model):
         self.mesh_events.put(['update_mesh_instance_model', instance_id, model])
-        self.update()
 
     def set_mesh_instance_visibility_(self, instance_id, visibility):
         self.get_mesh(instance_id).get_instance(instance_id).set_visibility(visibility)
 
     def set_mesh_instance_visibility(self, instance_id, visibility):
         self.mesh_events.put(['set_mesh_instance_visibility', instance_id, visibility])
-        self.update()
 
     def get_mesh_instance_visibility(self, instance_id):
         return self.get_mesh(instance_id).get_instance(instance_id).get_visibility()
@@ -257,21 +255,18 @@ class ViewerWidget(QOpenGLWidget):
 
     def remove_mesh(self, core_id):
         self.mesh_events.put(['remove_mesh', core_id])
-        self.update()
 
     def remove_mesh_prefab_(self, prefab_id):
         self.get_mesh(prefab_id).remove_prefab(prefab_id)
 
     def remove_mesh_prefab(self, prefab_id):
         self.mesh_events.put(['remove_mesh_prefab', prefab_id])
-        self.update()
 
     def remove_mesh_instance_(self, instance_id):
         self.get_mesh(instance_id).remove_instance(instance_id)
 
     def remove_mesh_instance(self, instance_id):
         self.mesh_events.put(['remove_mesh_instance', instance_id])
-        self.update()
 
     #################################################################################################
 

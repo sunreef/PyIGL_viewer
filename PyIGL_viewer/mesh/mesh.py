@@ -122,7 +122,7 @@ class GlMeshPrefab:
         self.uniform_values[name] = value
 
     def update_attribute(self, name, value):
-        self.vertex_buffers[name] = value
+        self.vertex_buffers[name] = (gl.arrays.vbo.VBO(value), value.shape[1])
 
 #################################################################################################
 
