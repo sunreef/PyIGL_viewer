@@ -20,7 +20,9 @@ class GlMeshCore:
         self.number_elements = faces.shape[0]
 
         self.face_size = faces.shape[1]
-        if self.face_size == 3:
+        if self.face_size == 1:
+            self.drawing_mode = gl.GL_POINTS 
+        elif self.face_size == 3:
             self.drawing_mode = gl.GL_TRIANGLES 
         else:
             self.drawing_mode = gl.GL_LINES 

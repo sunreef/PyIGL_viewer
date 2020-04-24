@@ -68,6 +68,8 @@ class ViewerWidget(QOpenGLWidget):
         gl.glClearColor(0.498, 0.498, 0.6078, 1.0)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
+        gl.glPointSize(3)
+
     def paintGL(self):
         self.process_mesh_events()
 
