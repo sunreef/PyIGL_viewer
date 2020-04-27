@@ -26,7 +26,6 @@ class Viewer(QMainWindow):
 
         self.setAutoFillBackground(True)
         self.setStyleSheet(f"background-color: {viewer_palette['viewer_background']}")
-        self.showMaximized()
 
         self.main_layout = QGridLayout()
         self.main_layout.setHorizontalSpacing(2)
