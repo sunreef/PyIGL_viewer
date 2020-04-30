@@ -33,17 +33,44 @@ class GlMeshCore:
             faces = new_faces
             self.face_size *= 2
 
-        self.vertex_buffer = gl.arrays.vbo.VBO(vertices)
-        self.element_buffer = gl.arrays.vbo.VBO(faces, target=gl.GL_ELEMENT_ARRAY_BUFFER)
+        self.elements = faces
+        flat_vertices = self.flatten_vertex_attribute(vertices)
+        self.flat_vertex_buffer = gl.arrays.vbo.VBO(flat_vertices)
+
+    def flatten_vertex_attribute(self, attribute):
+        number_elements = self.elements.shape[0]
+        element_size = self.elements.shape[1]
+        attribute_size = attribute.shape[1]
+
+        flat_attribute = np.zeros((number_elements * element_size, attribute_size), dtype=np.float32)
+        v_index = 0
+        for (f_index, f) in enumerate(self.elements):
+            for (f_ring_index, v) in enumerate(f):
+                flat_attribute[v_index] = attribute[v]
+                v_index += 1
+        return flat_attribute
+
+    def flatten_face_attribute(self, attribute):
+        number_elements = self.elements.shape[0]
+        element_size = self.elements.shape[1]
+        attribute_size = attribute.shape[1]
+
+        flat_attribute = np.zeros((number_elements * element_size, attribute_size), dtype=np.float32)
+        v_index = 0
+        for (f_index, f) in enumerate(self.elements):
+            for _ in f:
+                flat_attribute[v_index] = attribute[f_index]
+                v_index += 1
+        return flat_attribute
 
     def bind_buffers(self):
         gl.glEnableVertexAttribArray(0)
-        self.vertex_buffer.bind()
+        self.flat_vertex_buffer.bind()
         gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, False, 0, None)
-        self.element_buffer.bind()
 
     def update_vertices(self, vertices):
-        self.vertex_buffer.set_array(vertices)
+        flat_vertices = self.flatten_vertex_attribute(vertices)
+        self.flat_vertex_buffer.set_array(flat_vertices)
 
 #################################################################################################
         
@@ -166,7 +193,13 @@ class MeshGroup:
         self.mesh_prefabs = {}
         self.mesh_instances = {}
 
-    def add_prefab(self, prefab_id, attributes, uniforms, shader, fill, copy_from):
+    def add_prefab(self, prefab_id, vertex_attributes, face_attributes, uniforms, shader, fill, copy_from):
+        attributes = {}
+        for key in vertex_attributes:
+            attributes[key] = self.mesh_core.flatten_vertex_attribute(vertex_attributes[key])
+        for key in face_attributes:
+            attributes[key] = self.mesh_core.flatten_face_attribute(face_attributes[key])
+
         self.mesh_prefabs[prefab_id.prefab_id] = GlMeshPrefab(attributes, uniforms, shader, fill, copy_from)
         self.mesh_instances[prefab_id.prefab_id] = {}
 

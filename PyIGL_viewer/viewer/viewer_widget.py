@@ -85,8 +85,10 @@ class ViewerWidget(QOpenGLWidget):
                     continue
                 if prefab.fill:
                     gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+                    gl.glLineWidth(1)
                 else:
                     gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+                    gl.glLineWidth(3)
                 shader_program = prefab.get_shader().program
                 gl.glUseProgram(shader_program)
 
@@ -113,7 +115,7 @@ class ViewerWidget(QOpenGLWidget):
                 core.bind_buffers()
                 prefab.bind_vertex_attributes()
                 prefab.bind_uniforms()
-                gl.glDrawElements(core.drawing_mode, core.face_size * core.number_elements, gl.GL_UNSIGNED_INT, None)
+                gl.glDrawArrays(core.drawing_mode, 0, core.face_size * core.number_elements)
         self.process_post_draw_events()
 
     def resizeGL(self, width, height):
@@ -193,7 +195,7 @@ class ViewerWidget(QOpenGLWidget):
     def get_mesh_instance(self, instance_id):
         return self.get_mesh(instance_id).get_instance(instance_id)
 
-    def add_mesh_prefab_(self, prefab_id, shader='default', attributes={}, uniforms={}, fill=True, copy_from=None):
+    def add_mesh_prefab_(self, prefab_id, shader='default', vertex_attributes={}, face_attributes={}, uniforms={}, fill=True, copy_from=None):
         uniforms['lightDirection'] = self.light_direction
         uniforms['lightIntensity'] = self.light_intensity
         uniforms['ambientLighting'] = self.ambient_lighting
@@ -201,14 +203,28 @@ class ViewerWidget(QOpenGLWidget):
             try:
                 if copy_from is not None:
                     copy_from = self.get_mesh_prefab(copy_from)
-                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders[shader], fill=fill, copy_from=copy_from)
+                self.get_mesh(prefab_id).add_prefab(
+                        prefab_id, 
+                        vertex_attributes, 
+                        face_attributes, 
+                        uniforms, 
+                        self.shaders[shader], 
+                        fill=fill, 
+                        copy_from=copy_from)
             except ValueError as err:
                 print(err)
-                self.get_mesh(prefab_id).add_prefab(prefab_id, attributes, uniforms, self.shaders['default'], fill=fill)
+                self.get_mesh(prefab_id).add_prefab(
+                        prefab_id, 
+                        vertex_attributes, 
+                        face_attributes, 
+                        uniforms, 
+                        self.shaders['default'], 
+                        fill=fill, 
+                        copy_from=copy_from)
 
-    def add_mesh_prefab(self, core_id, shader='default', attributes={}, uniforms={}, fill=True, copy_from=None):
+    def add_mesh_prefab(self, core_id, shader='default', vertex_attributes={}, face_attributes={}, uniforms={}, fill=True, copy_from=None):
         prefab_id = GlMeshPrefabId(core_id)
-        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, attributes, uniforms, fill, copy_from])
+        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, vertex_attributes, face_attributes, uniforms, fill, copy_from])
         return prefab_id
 
     def add_mesh_instance_(self, instance_id, model_matrix):
