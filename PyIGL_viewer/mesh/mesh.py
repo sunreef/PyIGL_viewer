@@ -19,48 +19,30 @@ class GlMeshCore:
         self.number_vertices = vertices.shape[0]
         self.number_elements = faces.shape[0]
 
-        self.face_size = faces.shape[1]
-        if self.face_size == 1:
+        self.element_size = faces.shape[1]
+        if self.element_size == 1:
             self.drawing_mode = gl.GL_POINTS 
-        elif self.face_size == 3:
+        elif self.element_size == 3:
             self.drawing_mode = gl.GL_TRIANGLES 
         else:
             self.drawing_mode = gl.GL_LINES 
-            new_faces = np.zeros((self.number_elements, 2 * self.face_size), dtype=np.int32)
-            for s in range(self.face_size):
+            new_faces = np.zeros((self.number_elements, 2 * self.element_size), dtype=np.int32)
+            for s in range(self.element_size):
                 new_faces[:, 2 * s] = faces[:, s]
                 new_faces[:, 2 * s - 1] = faces[:, s]
             faces = new_faces
-            self.face_size *= 2
+            self.element_size *= 2
 
-        self.elements = faces
+        self.elements = faces.reshape((-1,))
         flat_vertices = self.flatten_vertex_attribute(vertices)
         self.flat_vertex_buffer = gl.arrays.vbo.VBO(flat_vertices)
 
     def flatten_vertex_attribute(self, attribute):
-        number_elements = self.elements.shape[0]
-        element_size = self.elements.shape[1]
-        attribute_size = attribute.shape[1]
-
-        flat_attribute = np.zeros((number_elements * element_size, attribute_size), dtype=np.float32)
-        v_index = 0
-        for (f_index, f) in enumerate(self.elements):
-            for (f_ring_index, v) in enumerate(f):
-                flat_attribute[v_index] = attribute[v]
-                v_index += 1
+        flat_attribute = attribute[self.elements]
         return flat_attribute
 
     def flatten_face_attribute(self, attribute):
-        number_elements = self.elements.shape[0]
-        element_size = self.elements.shape[1]
-        attribute_size = attribute.shape[1]
-
-        flat_attribute = np.zeros((number_elements * element_size, attribute_size), dtype=np.float32)
-        v_index = 0
-        for (f_index, f) in enumerate(self.elements):
-            for _ in f:
-                flat_attribute[v_index] = attribute[f_index]
-                v_index += 1
+        flat_attribute = np.repeat(attribute, self.element_size, axis=0)
         return flat_attribute
 
     def bind_buffers(self):
@@ -238,6 +220,14 @@ class MeshGroup:
 
     def update_vertices(self, vertices):
         self.mesh_core.update_vertices(vertices)
+
+    def update_prefab_vertex_attribute(self, prefab_id, name, value):
+        flat_value = self.mesh_core.flatten_vertex_attribute(value)
+        self.get_prefab(prefab_id).update_attribute(name, flat_value)
+
+    def update_prefab_face_attribute(self, prefab_id, name, value):
+        flat_value = self.mesh_core.flatten_face_attribute(value)
+        self.get_prefab(prefab_id).update_attribute(name, flat_value)
 
     def __iter__(self):
         iterators = []

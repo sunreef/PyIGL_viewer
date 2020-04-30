@@ -115,7 +115,7 @@ class ViewerWidget(QOpenGLWidget):
                 core.bind_buffers()
                 prefab.bind_vertex_attributes()
                 prefab.bind_uniforms()
-                gl.glDrawArrays(core.drawing_mode, 0, core.face_size * core.number_elements)
+                gl.glDrawArrays(core.drawing_mode, 0, core.element_size * core.number_elements)
         self.process_post_draw_events()
 
     def resizeGL(self, width, height):
@@ -247,11 +247,17 @@ class ViewerWidget(QOpenGLWidget):
     def update_mesh_prefab_uniform(self, prefab_id, name, value):
         self.mesh_events.put(['update_mesh_prefab_uniform', prefab_id, name, value])
 
-    def update_mesh_prefab_attribute_(self, prefab_id, name, value):
-        self.get_mesh(prefab_id).get_prefab(prefab_id).update_attribute(name, value)
+    def update_mesh_prefab_vertex_attribute_(self, prefab_id, name, value):
+        self.get_mesh(prefab_id).update_prefab_vertex_attribute(prefab_id, name, value)
 
-    def update_mesh_prefab_attribute(self, prefab_id, name, value):
-        self.mesh_events.put(['update_mesh_prefab_attribute', prefab_id, name, value])
+    def update_mesh_prefab_vertex_attribute(self, prefab_id, name, value):
+        self.mesh_events.put(['update_mesh_prefab_vertex_attribute', prefab_id, name, value])
+
+    def update_mesh_prefab_face_attribute_(self, prefab_id, name, value):
+        self.get_mesh(prefab_id).update_prefab_face_attribute(prefab_id, name, value)
+
+    def update_mesh_prefab_face_attribute(self, prefab_id, name, value):
+        self.mesh_events.put(['update_mesh_prefab_face_attribute', prefab_id, name, value])
 
     def update_mesh_instance_model_(self, instance_id, model):
         self.get_mesh(instance_id).get_instance(instance_id).set_model_matrix(model)
