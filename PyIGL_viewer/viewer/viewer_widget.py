@@ -54,9 +54,9 @@ class ViewerWidget(QOpenGLWidget):
         shader_folder = os.path.join(current_file_path, "..", "shaders")
         for dir_name, dirs, files in os.walk(shader_folder):
             for f in files:
-                if f[-19:] == '_vertex_shader.vert':
-                    shader_name = f[:-19]
-                    fragment_shader_name = shader_name + '_fragment_shader.frag'
+                if f[-5:] == '.vert':
+                    shader_name = f[:-5]
+                    fragment_shader_name = shader_name + '.frag'
                     self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
                         os.path.join(dir_name, fragment_shader_name))
 
