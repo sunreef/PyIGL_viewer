@@ -34,6 +34,9 @@ class ViewerWidget(QOpenGLWidget):
         self.light_intensity = np.array([1.5, 1.5, 1.5])
         self.ambient_lighting = np.array([0.1, 0.1, 0.1])
 
+        self.line_width = 2
+        self.point_size = 3
+
         # Available shaders
         self.shaders = {}
 
@@ -68,10 +71,11 @@ class ViewerWidget(QOpenGLWidget):
         gl.glClearColor(0.498, 0.498, 0.6078, 1.0)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
-        gl.glPointSize(3)
 
     def paintGL(self):
         self.process_mesh_events()
+
+        gl.glPointSize(self.point_size)
 
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         view_matrix = self.camera.get_view_matrix()
@@ -88,7 +92,7 @@ class ViewerWidget(QOpenGLWidget):
                     gl.glLineWidth(1)
                 else:
                     gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-                    gl.glLineWidth(3)
+                    gl.glLineWidth(self.line_width)
                 shader_program = prefab.get_shader().program
                 gl.glUseProgram(shader_program)
 
@@ -291,6 +295,12 @@ class ViewerWidget(QOpenGLWidget):
 
     def remove_mesh_instance(self, instance_id):
         self.mesh_events.put(['remove_mesh_instance', instance_id])
+
+    def clear_all_(self):
+        self.mesh_groups.clear()
+
+    def clear_all(self):
+        self.mesh_events.put(['clear_all'])
 
     #################################################################################################
 
