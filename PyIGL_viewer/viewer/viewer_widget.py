@@ -29,10 +29,13 @@ class ViewerWidget(QOpenGLWidget):
 
         # Global viewer attributes
         self.camera = Camera(self.size())
-        self.light_direction = np.array([-0.1, -0.1, 1.0])
-        self.light_direction /= np.linalg.norm(self.light_direction)
-        self.light_intensity = np.array([1.5, 1.5, 1.5])
-        self.ambient_lighting = np.array([0.1, 0.1, 0.1])
+
+        self.global_uniforms = {}
+        self.global_uniforms['lightDirection'] = np.array([-0.1, -0.1, 1.0])
+        self.global_uniforms['lightDirection'] /= np.linalg.norm(self.global_uniforms['lightDirection'])
+        self.global_uniforms['lightIntensity'] = np.array([1.5, 1.5, 1.5])
+        self.global_uniforms['ambientLighting'] = np.array([0.1, 0.1, 0.1])
+        self.global_uniforms['linkLight'] = False
 
         self.line_width = 2
         self.point_size = 3
@@ -53,6 +56,10 @@ class ViewerWidget(QOpenGLWidget):
         self.post_draw_events = Queue()
 
     def add_shaders(self):       
+        excluded_attributes = ['position']
+        excluded_uniforms = ['mvp', 'projection', 'view', 'model']
+        excluded_uniforms = excluded_uniforms + list(self.global_uniforms.keys())
+
         current_file_path = os.path.dirname(os.path.abspath(__file__))
         shader_folder = os.path.join(current_file_path, "..", "shaders")
         for dir_name, dirs, files in os.walk(shader_folder):
@@ -61,7 +68,7 @@ class ViewerWidget(QOpenGLWidget):
                     shader_name = f[:-5]
                     fragment_shader_name = shader_name + '.frag'
                     self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
-                        os.path.join(dir_name, fragment_shader_name))
+                        os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
 
     def initializeGL(self):
         self.add_shaders()
@@ -71,6 +78,31 @@ class ViewerWidget(QOpenGLWidget):
         gl.glClearColor(0.498, 0.498, 0.6078, 1.0)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
+    def bind_global_uniforms(self, shader_program):
+        for key, value in self.global_uniforms.items():
+            location = gl.glGetUniformLocation(shader_program, key)
+            if location != -1:
+                if type(value) is bool:
+                    gl.glUniform1i(location, value)
+                if hasattr(value, 'shape'):
+                    shape = value.shape
+                    if len(shape) == 1:
+                        if shape[0] == 1:
+                            gl.glUniform1fv(location, 1, value)
+                        if shape[0] == 2:
+                            gl.glUniform2fv(location, 1, value)
+                        if shape[0] == 3:
+                            gl.glUniform3fv(location, 1, value)
+                        if shape[0] == 4:
+                            gl.glUniform4fv(location, 1, value)
+
+                    if len(shape) == 2:
+                        if shape[0] == shape[1] and shape[0] == 2:
+                            gl.glUniformMatrix2fv(location, 1, gl.GL_FALSE, value)
+                        if shape[0] == shape[1] and shape[0] == 3:
+                            gl.glUniformMatrix3fv(location, 1, gl.GL_FALSE, value)
+                        if shape[0] == shape[1] and shape[0] == 4:
+                            gl.glUniformMatrix4fv(location, 1, gl.GL_FALSE, value.transpose())
 
     def paintGL(self):
         self.process_mesh_events()
@@ -78,8 +110,8 @@ class ViewerWidget(QOpenGLWidget):
         gl.glPointSize(self.point_size)
 
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
-        view_matrix = self.camera.get_view_matrix()
-        projection_matrix = self.camera.get_projection_matrix()
+        self.global_uniforms['view'] = self.camera.get_view_matrix()
+        self.global_uniforms['projection'] = self.camera.get_projection_matrix()
         for group in self.mesh_groups.values():
             for core, prefab, instance in group:
                 if not instance.get_visibility():
@@ -96,13 +128,15 @@ class ViewerWidget(QOpenGLWidget):
                 shader_program = prefab.get_shader().program
                 gl.glUseProgram(shader_program)
 
+                self.bind_global_uniforms(shader_program)
+
                 # Load projection matrix
-                projection_location = gl.glGetUniformLocation(shader_program, 'projection')
-                gl.glUniformMatrix4fv(projection_location, 1, False, projection_matrix.transpose())
+                # projection_location = gl.glGetUniformLocation(shader_program, 'projection')
+                # gl.glUniformMatrix4fv(projection_location, 1, False, projection_matrix.transpose())
 
                 # Load view matrix
-                view_location = gl.glGetUniformLocation(shader_program, 'view')
-                gl.glUniformMatrix4fv(view_location, 1, False, view_matrix.transpose())
+                # view_location = gl.glGetUniformLocation(shader_program, 'view')
+                # gl.glUniformMatrix4fv(view_location, 1, False, view_matrix.transpose())
 
                 # Load model matrix
                 model_matrix = instance.get_model_matrix()
@@ -113,7 +147,7 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
 
                 mvp_location = gl.glGetUniformLocation(shader_program, 'mvp')
-                gl.glUniformMatrix4fv(mvp_location, 1, False, (projection_matrix * view_matrix * model_matrix).transpose())
+                gl.glUniformMatrix4fv(mvp_location, 1, False, (self.global_uniforms['projection'] * self.global_uniforms['view'] * model_matrix).transpose())
 
                 # Draw mesh
                 core.bind_buffers()
@@ -200,9 +234,6 @@ class ViewerWidget(QOpenGLWidget):
         return self.get_mesh(instance_id).get_instance(instance_id)
 
     def add_mesh_prefab_(self, prefab_id, shader='default', vertex_attributes={}, face_attributes={}, uniforms={}, fill=True, copy_from=None):
-        uniforms['lightDirection'] = self.light_direction
-        uniforms['lightIntensity'] = self.light_intensity
-        uniforms['ambientLighting'] = self.ambient_lighting
         if shader in self.shaders:
             try:
                 if copy_from is not None:
@@ -308,11 +339,14 @@ class ViewerWidget(QOpenGLWidget):
     # General viewer settings
 
     def set_directional_light(self, direction, intensity):
-        self.light_direction = direction
-        self.light_intensity = intensity
+        self.global_uniforms['lightDirection'] = direction / np.linalg.norm(direction)
+        self.global_uniforms['lightIntensity'] = intensity
 
     def set_ambient_light(self, intensity):
-        self.ambient_lighting = intensity
+        self.global_uniforms['ambientLighting'] = intensity
+
+    def link_light_to_camera(self, link=True):
+        self.global_uniforms['linkLight'] = link
 
     def toggle_wireframe(self):
         self.draw_wireframe = not self.draw_wireframe
