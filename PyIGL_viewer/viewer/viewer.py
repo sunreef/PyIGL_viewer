@@ -1,4 +1,5 @@
 import sys
+import copy
 
 from .viewer_widget import ViewerWidget
 from .ui_widgets import PropertyWidget, LegendWidget
@@ -82,6 +83,13 @@ class Viewer(QMainWindow):
             self.linked_cameras = True
             for widget in self.viewer_widgets:
                 widget.camera = self.camera
+            self.update_all_viewers()
+
+    def unlink_all_cameras(self):
+        if len(self.viewer_widgets) > 0:
+            self.linked_cameras = False
+            for widget in self.viewer_widgets:
+                widget.camera = copy.deepcopy(widget.camera)
             self.update_all_viewers()
 
     def update_all_viewers(self):
