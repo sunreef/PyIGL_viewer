@@ -10,7 +10,7 @@ uniform vec3 ambientLighting;
 out vec4 outputColor;
 void main()
 {
-    float dot_normal = max(0.0, dot(outNormal.xyz, lightDirection));
+    float dot_normal = abs(dot(outNormal.xyz, -lightDirection));
     vec3 color = ambientLighting;
     color += dot_normal * lightIntensity;
     color *= albedo;

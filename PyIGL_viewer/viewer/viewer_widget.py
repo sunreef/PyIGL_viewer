@@ -180,18 +180,27 @@ class ViewerWidget(QOpenGLWidget):
     def mouseReleaseEvent(self, e):
         self.mouse_handler.add_mouse_release_event(e)
         self.camera.finalize_transformation()
-        self.update()
+        if self.main_window.linked_cameras:
+            self.main_window.update_all_viewers()
+        else:
+            self.update()
 
     def mouseMoveEvent(self, e):
         self.mouse_handler.add_mouse_move_event(e)
         if self.mouse_handler.button_pressed(Qt.LeftButton):
             delta = self.mouse_handler.pressed_delta_mouse(Qt.LeftButton)
             self.camera.handle_rotation(delta)
-            self.update()
+            if self.main_window.linked_cameras:
+                self.main_window.update_all_viewers()
+            else:
+                self.update()
         elif self.mouse_handler.button_pressed(Qt.RightButton):
             delta = self.mouse_handler.pressed_delta_mouse(Qt.RightButton)
             self.camera.handle_translation(delta)
-            self.update()
+            if self.main_window.linked_cameras:
+                self.main_window.update_all_viewers()
+            else:
+                self.update()
 
     def wheelEvent(self, e):
         self.mouse_handler.add_scroll_event(e)
@@ -199,7 +208,10 @@ class ViewerWidget(QOpenGLWidget):
         if delta.y() != 0:
             delta = -0.002 * delta.y() / 8.0
             self.camera.handle_zoom(delta)
-            self.update()
+            if self.main_window.linked_cameras:
+                self.main_window.update_all_viewers()
+            else:
+                self.update()
 
     #################################################################################################
 

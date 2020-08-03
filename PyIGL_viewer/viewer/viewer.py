@@ -43,6 +43,7 @@ class Viewer(QMainWindow):
         self.menu_layout.setContentsMargins(2, 2, 2, 2)
 
         self.viewer_widgets = []
+        self.linked_cameras = False
         self.menu_properties = {}
         self.current_menu_layout = self.menu_layout
 
@@ -74,6 +75,18 @@ class Viewer(QMainWindow):
             return self.viewer_widgets[index]
         else:
             return None
+
+    def link_all_cameras(self):
+        if len(self.viewer_widgets) > 0:
+            self.camera = self.viewer_widgets[0].camera
+            self.linked_cameras = True
+            for widget in self.viewer_widgets:
+                widget.camera = self.camera
+            self.update_all_viewers()
+
+    def update_all_viewers(self):
+        for widget in self.viewer_widgets:
+            widget.update()
 
     def start_ui_group(self, name):
         group_layout = QVBoxLayout()
