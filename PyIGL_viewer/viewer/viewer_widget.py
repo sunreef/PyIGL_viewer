@@ -170,7 +170,10 @@ class ViewerWidget(QOpenGLWidget):
             exit()
         if e.key() == Qt.Key_R:
             self.camera.reset()
-            self.update()
+            if self.main_window.linked_cameras:
+                self.main_window.update_all_viewers()
+            else:
+                self.update()
         if e.key() == Qt.Key_W:
             self.toggle_wireframe()
 
