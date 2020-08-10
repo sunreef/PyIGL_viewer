@@ -57,7 +57,11 @@ mesh_index = viewer_widget.add_mesh(vertices, faces)
 mesh_prefab_index = viewer_widget.add_mesh_prefab(mesh_index, 'default')
 instance_index = viewer_widget.add_mesh_instance(mesh_prefab_index, np.eye(4, dtype='f'))
 
+
 # Add the wireframe for our mesh 
+# The wireframe shader expect a uniform attribute called lineColor that specifies the color of the wireframe lines.
+uniforms = {}
+uniforms['lineColor'] = np.array([0.0, 0.0, 0.0])
 wireframe_mesh_prefab_index = viewer_widget.add_mesh_prefab(mesh_index, 'wireframe', fill=False)
 wireframe_instance_index = viewer_widget.add_mesh_instance(wireframe_mesh_prefab_index, np.eye(4, dtype='f'))
 
