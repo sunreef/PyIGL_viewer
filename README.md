@@ -67,7 +67,7 @@ viewer_app.exec()
 
 The image created when clicking the `Take Screenshot` button should be similar to the following image:
 
-![Curved corners screenshot](images/curved_corners_screenshot.png)
+![Example screenshot](images/cube_screenshot.png)
 
 
 ## License
