@@ -17,7 +17,7 @@ These modules should be installed by PyPi when installing the viewer:
 
 To use this module, you have two options:
 
-1. Clone this repository and run `python setup.py install` from the root of the repository.
+1. Clone this repository and run `pip install -e .` from the root of the repository.
 2. Install with pip directly: `pip install git+git://github.com/sunreef/PyIGL_viewer.git`
 
 ### Usage
