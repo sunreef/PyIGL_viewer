@@ -409,6 +409,7 @@ class ViewerWidget(QOpenGLWidget):
     def add_wireframe_(self, mesh_instance_id, lineColor):
         uniforms = {}
         uniforms['lineColor'] = lineColor
-        wireframe_mesh_prefab_index = self.add_mesh_prefab(mesh_instance_id, 'wireframe', fill=False, uniforms=uniforms)
-        wireframe_instance_index = self.add_mesh_instance(wireframe_mesh_prefab_index, self.get_mesh_instance(mesh_instance_id).get_model_matrix())
-
+        wireframe_mesh_prefab_index = self.add_mesh_prefab(
+            mesh_instance_id, 'wireframe', fill=False, uniforms=uniforms)
+        wireframe_instance_index = self.add_mesh_instance(
+            wireframe_mesh_prefab_index, self.get_mesh_instance(mesh_instance_id).get_model_matrix())
