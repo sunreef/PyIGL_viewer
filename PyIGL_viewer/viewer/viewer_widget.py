@@ -403,12 +403,12 @@ class ViewerWidget(QOpenGLWidget):
 
     # Convenience functions
 
-    def add_wireframe(self, mesh_instance_id, lineColor=np.array([0.0, 0.0, 0.0])):
-        self.mesh_events.put(['add_wireframe', mesh_instance_id, lineColor])
+    def add_wireframe(self, mesh_instance_id, line_color=np.array([0.0, 0.0, 0.0])):
+        self.mesh_events.put(['add_wireframe', mesh_instance_id, line_color])
 
-    def add_wireframe_(self, mesh_instance_id, lineColor):
+    def add_wireframe_(self, mesh_instance_id, line_color):
         uniforms = {}
-        uniforms['lineColor'] = lineColor
+        uniforms['lineColor'] = line_color
         wireframe_mesh_prefab_index = self.add_mesh_prefab(
             mesh_instance_id, 'wireframe', fill=False, uniforms=uniforms)
         wireframe_instance_index = self.add_mesh_instance(
