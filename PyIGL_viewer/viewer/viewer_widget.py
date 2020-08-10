@@ -232,6 +232,8 @@ class ViewerWidget(QOpenGLWidget):
                 return
 
     def add_mesh_(self, core_id, vertices, faces):
+        vertices = vertices.astype(np.float32)
+        faces = faces.astype(np.int32)
         self.mesh_groups[core_id.core_id] = MeshGroup(vertices, faces)
 
     def add_mesh(self, vertices, faces):

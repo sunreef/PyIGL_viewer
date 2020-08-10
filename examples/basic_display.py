@@ -8,8 +8,6 @@ script_folder = os.path.dirname(__file__)
 path_to_obj_file = os.path.join(script_folder, 'assets', 'cube.obj')
 # Path to your OBJ file stored in path_to_obj_file 
 vertices, faces = igl.read_triangle_mesh(path_to_obj_file)
-vertices = vertices.astype(np.float32)
-faces = faces.astype(np.int32)
 
 bbox_min = np.min(vertices, axis=0)
 bbox_max = np.max(vertices, axis=0)
