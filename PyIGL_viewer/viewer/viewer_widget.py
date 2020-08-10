@@ -33,11 +33,11 @@ class ViewerWidget(QOpenGLWidget):
         self.camera = Camera(self.size())
 
         self.global_uniforms = {}
-        self.global_uniforms['lightDirection'] = np.array([-0.1, -0.1, 1.0])
+        self.global_uniforms['lightDirection'] = np.array([0.0, 0.0, 1.0])
         self.global_uniforms['lightDirection'] /= np.linalg.norm(
             self.global_uniforms['lightDirection'])
-        self.global_uniforms['lightIntensity'] = np.array([1.5, 1.5, 1.5])
-        self.global_uniforms['ambientLighting'] = np.array([0.1, 0.1, 0.1])
+        self.global_uniforms['lightIntensity'] = np.array([0.95, 0.95, 0.95])
+        self.global_uniforms['ambientLighting'] = np.array([0.05, 0.05, 0.05])
         self.global_uniforms['linkLight'] = False
 
         self.line_width = 2
