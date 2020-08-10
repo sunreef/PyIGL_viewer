@@ -65,10 +65,14 @@ viewer_widget.add_wireframe(instance_index, line_color=np.array([0.1, 0.1, 0.1])
 viewer_app.exec()
 ```
 
-The image created when clicking the `Take Screenshot` button should be similar to the following image:
+The image created when clicking the `Take Screenshot` button should be similar to the following image from the `basic_display.py` example:
 
 ![Example screenshot](images/cube_screenshot.png)
 
+## Examples
+
+Python scripts showing how to use the viewer can be found in the `examples` folder in this repository.
+To run an example, make sure you have the viewer installed in your current Python environment and run the script using `python examples/*script_name*`.
 
 ## License
 
