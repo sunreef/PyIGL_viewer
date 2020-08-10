@@ -1,37 +1,22 @@
-# PyIGL Viewer for scientific 3D mesh visualization
-
-An OpenGL renderer written from scratch in Python using PyQt5 and PyOpenGL.
-Its purpose is to simplify mesh visualization for Python graphics research projects.
-
-![Viewer screenshot](images/viewer_screenshot.png)
-
-## Getting Started
-
-### Prerequisites
-
-These modules should be installed by PyPi when installing the viewer:
-1. PyQt5
-2. PyOpenGL
-
-### Installation
-
-To use this module, you have two options:
-
-1. Clone this repository and run `python setup.py install` from the root of the repository.
-2. Install with pip directly: `pip install git+git://github.com/sunreef/PyIGL_viewer.git`
-
-### Usage
-
-In this simple example, we use [LibIGL Python bindings](https://github.com/libigl/libigl-python-bindings) to load an OBJ file and display it with our default shader.
-
-```python
+import os
 import numpy as np
 import igl
 from PyQt5.QtWidgets import QApplication
 from PyIGL_viewer import Viewer
 
+script_folder = os.path.dirname(__file__)
+path_to_obj_file = os.path.join(script_folder, 'assets', 'cube.obj')
 # Path to your OBJ file stored in path_to_obj_file 
 vertices, faces = igl.read_triangle_mesh(path_to_obj_file)
+vertices = vertices.astype(np.float32)
+faces = faces.astype(np.int32)
+
+bbox_min = np.min(vertices, axis=0)
+bbox_max = np.max(vertices, axis=0)
+scaling_factor = 1.0 / np.max(bbox_max - bbox_min)
+center = np.mean(vertices, axis=0)
+vertices -= center
+vertices *= scaling_factor
 
 # Create Qt application and our viewer window
 viewer_app = QApplication(["IGL viewer"])
@@ -67,14 +52,3 @@ wireframe_instance_index = viewer_widget.add_mesh_instance(wireframe_mesh_prefab
 
 # Launch the Qt application
 viewer_app.exec()
-```
-
-The image created when clicking the `Take Screenshot` button should be similar to the following image:
-
-![Curved corners screenshot](images/curved_corners_screenshot.png)
-
-
-## License
-
-This project is licensed under the GNU General Public License - see the [LICENSE.md](LICENSE.md) file for details
-
