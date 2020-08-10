@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import math
 import threading
 import numpy as np
@@ -15,6 +16,7 @@ from .mouse import MouseHandler
 from .camera import Camera
 
 from ..mesh import GlMeshCore, GlMeshPrefab, GlMeshInstance, MeshGroup, GlMeshCoreId, GlMeshPrefabId, GlMeshInstanceId
+
 
 class ViewerWidget(QOpenGLWidget):
     def __init__(self, parent):
@@ -32,7 +34,8 @@ class ViewerWidget(QOpenGLWidget):
 
         self.global_uniforms = {}
         self.global_uniforms['lightDirection'] = np.array([-0.1, -0.1, 1.0])
-        self.global_uniforms['lightDirection'] /= np.linalg.norm(self.global_uniforms['lightDirection'])
+        self.global_uniforms['lightDirection'] /= np.linalg.norm(
+            self.global_uniforms['lightDirection'])
         self.global_uniforms['lightIntensity'] = np.array([1.5, 1.5, 1.5])
         self.global_uniforms['ambientLighting'] = np.array([0.1, 0.1, 0.1])
         self.global_uniforms['linkLight'] = False
@@ -55,7 +58,7 @@ class ViewerWidget(QOpenGLWidget):
         self.mesh_events = Queue()
         self.post_draw_events = Queue()
 
-    def add_shaders(self):       
+    def add_shaders(self):
         excluded_attributes = ['position']
         excluded_uniforms = ['mvp', 'projection', 'view', 'model']
         excluded_uniforms = excluded_uniforms + list(self.global_uniforms.keys())
@@ -68,7 +71,7 @@ class ViewerWidget(QOpenGLWidget):
                     shader_name = f[:-5]
                     fragment_shader_name = shader_name + '.frag'
                     self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
-                        os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
+                                                              os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
 
     def initializeGL(self):
         self.add_shaders()
@@ -147,7 +150,8 @@ class ViewerWidget(QOpenGLWidget):
                 gl.glUniformMatrix4fv(model_location, 1, False, model_matrix.transpose())
 
                 mvp_location = gl.glGetUniformLocation(shader_program, 'mvp')
-                gl.glUniformMatrix4fv(mvp_location, 1, False, (self.global_uniforms['projection'] * self.global_uniforms['view'] * model_matrix).transpose())
+                gl.glUniformMatrix4fv(mvp_location, 1, False, (
+                    self.global_uniforms['projection'] * self.global_uniforms['view'] * model_matrix).transpose())
 
                 # Draw mesh
                 core.bind_buffers()
@@ -256,27 +260,28 @@ class ViewerWidget(QOpenGLWidget):
                 if copy_from is not None:
                     copy_from = self.get_mesh_prefab(copy_from)
                 self.get_mesh(prefab_id).add_prefab(
-                        prefab_id, 
-                        vertex_attributes, 
-                        face_attributes, 
-                        uniforms, 
-                        self.shaders[shader], 
-                        fill=fill, 
-                        copy_from=copy_from)
+                    prefab_id,
+                    vertex_attributes,
+                    face_attributes,
+                    uniforms,
+                    self.shaders[shader],
+                    fill=fill,
+                    copy_from=copy_from)
             except ValueError as err:
                 print(err)
                 self.get_mesh(prefab_id).add_prefab(
-                        prefab_id, 
-                        vertex_attributes, 
-                        face_attributes, 
-                        uniforms, 
-                        self.shaders['default'], 
-                        fill=fill, 
-                        copy_from=copy_from)
+                    prefab_id,
+                    vertex_attributes,
+                    face_attributes,
+                    uniforms,
+                    self.shaders['default'],
+                    fill=fill,
+                    copy_from=copy_from)
 
     def add_mesh_prefab(self, core_id, shader='default', vertex_attributes={}, face_attributes={}, uniforms={}, fill=True, copy_from=None):
         prefab_id = GlMeshPrefabId(core_id)
-        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader, vertex_attributes, face_attributes, uniforms, fill, copy_from])
+        self.mesh_events.put(['add_mesh_prefab', prefab_id, shader,
+                              vertex_attributes, face_attributes, uniforms, fill, copy_from])
         return prefab_id
 
     def add_mesh_instance_(self, instance_id, model_matrix):
@@ -369,6 +374,11 @@ class ViewerWidget(QOpenGLWidget):
         self.draw_wireframe = not self.draw_wireframe
         self.update()
 
+    #################################################################################################
+
+    #################################################################################################
+    # Post-draw events
+
     def process_post_draw_events(self):
         while True:
             try:
@@ -389,14 +399,16 @@ class ViewerWidget(QOpenGLWidget):
 
     #################################################################################################
 
+    #################################################################################################
+
     # Convenience functions
 
-    # def add_wireframe(self, mesh_instance_id, lineColor=np.array([0.0, 0.0, 0.0])):
-        # uniforms = {}
-        # uniforms['lineColor'] = lineColor
-        # wireframe_mesh_prefab_index = self.add_mesh_prefab(mesh_instance_id.core_id, 'wireframe', fill=False, uniforms=uniforms)
-        # wireframe_instance_index = self.add_mesh_instance(wireframe_mesh_prefab_index, self.get_mesh_instance(mesh_instance_id))
+    def add_wireframe(self, mesh_instance_id, lineColor=np.array([0.0, 0.0, 0.0])):
+        self.mesh_events.put(['add_wireframe', mesh_instance_id, lineColor])
 
-
-
+    def add_wireframe_(self, mesh_instance_id, lineColor):
+        uniforms = {}
+        uniforms['lineColor'] = lineColor
+        wireframe_mesh_prefab_index = self.add_mesh_prefab(mesh_instance_id, 'wireframe', fill=False, uniforms=uniforms)
+        wireframe_instance_index = self.add_mesh_instance(wireframe_mesh_prefab_index, self.get_mesh_instance(mesh_instance_id).get_model_matrix())
 
