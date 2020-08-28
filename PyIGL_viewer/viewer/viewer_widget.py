@@ -38,6 +38,7 @@ class ViewerWidget(QOpenGLWidget):
             self.global_uniforms['lightDirection'])
         self.global_uniforms['lightIntensity'] = np.array([0.95, 0.95, 0.95])
         self.global_uniforms['ambientLighting'] = np.array([0.05, 0.05, 0.05])
+        self.global_uniforms['cameraPosition'] = self.camera.get_position()
         self.global_uniforms['linkLight'] = False
 
         self.line_width = 2
@@ -72,6 +73,7 @@ class ViewerWidget(QOpenGLWidget):
                     fragment_shader_name = shader_name + '.frag'
                     self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
                                                               os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
+        print(self.shaders)
 
     def initializeGL(self):
         self.add_shaders()
@@ -115,6 +117,7 @@ class ViewerWidget(QOpenGLWidget):
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         self.global_uniforms['view'] = self.camera.get_view_matrix()
         self.global_uniforms['projection'] = self.camera.get_projection_matrix()
+        self.global_uniforms['cameraPosition'] = self.camera.get_position()
         for group in self.mesh_groups.values():
             for core, prefab, instance in group:
                 if not instance.get_visibility():

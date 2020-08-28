@@ -62,6 +62,9 @@ class Camera:
         delta = max(delta, -0.9)
         self.eye += delta * target_vector
 
+    def get_position(self):
+        return self.current_eye
+
     def get_view_matrix(self):
         return lookat(self.current_eye, self.current_target, self.current_up)
 
