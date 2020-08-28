@@ -25,8 +25,8 @@ void main()
     if (dotCamera < 0) {
         normal = -normal;
     }
-    float dotNormal = dot(normal, -transformedLightDirection);
-    vec3 reflectedRay = normalize(2.0 * dotNormal * normal + transformedLightDirection);
+    float dotNormal = dot(normal, transformedLightDirection);
+    vec3 reflectedRay = normalize(2.0 * dotNormal * normal - transformedLightDirection);
 
     float reflectedFactor = max(0.0, dot(cameraDirection, reflectedRay));
     

@@ -73,7 +73,6 @@ class ViewerWidget(QOpenGLWidget):
                     fragment_shader_name = shader_name + '.frag'
                     self.shaders[shader_name] = ShaderProgram(shader_name, os.path.join(dir_name, f),
                                                               os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
-        print(self.shaders)
 
     def initializeGL(self):
         self.add_shaders()
