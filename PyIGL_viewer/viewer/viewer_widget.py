@@ -75,11 +75,18 @@ class ViewerWidget(QOpenGLWidget):
                                                               os.path.join(dir_name, fragment_shader_name), excluded_attributes, excluded_uniforms)
 
     def initializeGL(self):
+
+        def hex_to_rgb(value):
+            value = value.lstrip('#')
+            lv = len(value)
+            return tuple(int(value[i:i+lv//3], 16) for i in range(0, lv, lv//3))
+        r, g, b = hex_to_rgb(self.main_window.viewer_palette['viewer_background'])
+
         self.add_shaders()
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glDepthFunc(gl.GL_LESS)
         gl.glClearDepth(1.0)
-        gl.glClearColor(0.498, 0.498, 0.6078, 1.0)
+        gl.glClearColor(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, 1.0)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
     def bind_global_uniforms(self, shader_program):
@@ -112,6 +119,12 @@ class ViewerWidget(QOpenGLWidget):
         self.process_mesh_events()
 
         gl.glPointSize(self.point_size)
+        def hex_to_rgb(value):
+            value = value.lstrip('#')
+            lv = len(value)
+            return tuple(int(value[i:i+lv//3], 16) for i in range(0, lv, lv//3))
+        r, g, b = hex_to_rgb(self.main_window.viewer_palette['viewer_background'])
+        gl.glClearColor(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, 1.0)
 
         gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_COLOR_BUFFER_BIT)
         self.global_uniforms['view'] = self.camera.get_view_matrix()

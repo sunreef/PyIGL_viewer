@@ -7,7 +7,7 @@ uniform mat4 model;
 
 uniform mat4 mvp;
 
-float EPSILON = 1e-4;
+float EPSILON = 1e-8;
 
 void main()
 {
