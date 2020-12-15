@@ -418,6 +418,33 @@ class ViewerWidget(QOpenGLWidget):
 
     # Convenience functions
 
+    def display_point_cloud(self, points, shader='per_vertex_color', uniforms={}, vertex_attributes={}, face_attributes={}):
+        if not 'vertexColor' in vertex_attributes:
+            vertex_attributes['vertexColor'] = np.tile(np.array([0.8, 0.2, 0.2], dtype=np.float32), (points.shape[0], 1))
+        faces = np.linspace(0, points.shape[0], num=points.shape[0], endpoint=False, dtype=np.int32)[:, np.newaxis]
+        mesh_id = self.add_mesh(points, faces)
+        mesh_prefab_id = self.add_mesh_prefab(mesh_id, shader=shader, vertex_attributes=vertex_attributes, face_attributes=face_attributes, uniforms=uniforms)
+        mesh_instance_id = self.add_mesh_instance(mesh_prefab_id, np.eye(4))
+        return mesh_instance_id
+
+
+    def display_mesh(self, vertices, faces, normals):
+        vertex_attributes = {}
+        face_attributes = {}
+        face_attributes['normal'] = normals
+        uniforms = {}
+        uniforms['albedo'] = np.array([0.8, 0.8, 0.8])
+        mesh_id = self.add_mesh(vertices, faces)
+        mesh_prefab_id = self.add_mesh_prefab(mesh_id, shader='lambert', vertex_attributes=vertex_attributes, face_attributes=face_attributes, uniforms=uniforms)
+        mesh_instance_id = self.add_mesh_instance(mesh_prefab_id, np.eye(4))
+        return mesh_instance_id
+
+    def display_quad_net(self, vertices, faces, shader='wireframe', uniforms={'lineColor': np.array([0.8, 0.2, 0.2])}, vertex_attributes={}, face_attributes={}):
+        mesh_id = self.add_mesh(vertices, faces)
+        mesh_prefab_id = self.add_mesh_prefab(mesh_id, shader=shader, vertex_attributes=vertex_attributes, face_attributes=face_attributes, uniforms=uniforms)
+        mesh_instance_id = self.add_mesh_instance(mesh_prefab_id, np.eye(4))
+        return mesh_instance_id
+
     def add_wireframe(self, mesh_instance_id, line_color=np.array([0.0, 0.0, 0.0])):
         self.mesh_events.put(['add_wireframe', mesh_instance_id, line_color])
 
