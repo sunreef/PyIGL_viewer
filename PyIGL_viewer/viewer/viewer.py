@@ -5,10 +5,16 @@ from .viewer_widget import ViewerWidget
 from .ui_widgets import PropertyWidget, LegendWidget
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QVBoxLayout, QGridLayout, QPushButton, QLineEdit, QLabel
-
-
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QFrame,
+    QVBoxLayout,
+    QGridLayout,
+    QPushButton,
+    QLabel,
+)
 
 
 class Viewer(QMainWindow):
@@ -19,15 +25,17 @@ class Viewer(QMainWindow):
     def __init__(self):
         super().__init__()
         self.viewer_palette = {
-            'viewer_background': '#7f7f9b',
-            'viewer_widget_border_color': '#555555',
-            'menu_background': '#bbbbbf',
-            'ui_element_background': '#cccccc',
-            'ui_group_border_color': '#777777',
+            "viewer_background": "#7f7f9b",
+            "viewer_widget_border_color": "#555555",
+            "menu_background": "#bbbbbf",
+            "ui_element_background": "#cccccc",
+            "ui_group_border_color": "#777777",
         }
 
         self.setAutoFillBackground(True)
-        self.setStyleSheet(f"background-color: {self.viewer_palette['viewer_background']}")
+        self.setStyleSheet(
+            f"background-color: {self.viewer_palette['viewer_background']}"
+        )
 
         self.main_layout = QGridLayout()
         self.main_layout.setHorizontalSpacing(2)
@@ -37,7 +45,9 @@ class Viewer(QMainWindow):
 
         menu_widget = QFrame(self)
         menu_widget.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        menu_widget.setStyleSheet(f"background-color: {self.viewer_palette['menu_background']}")
+        menu_widget.setStyleSheet(
+            f"background-color: {self.viewer_palette['menu_background']}"
+        )
         self.menu_layout = QVBoxLayout()
         self.menu_layout.setAlignment(Qt.AlignTop)
         menu_widget.setLayout(self.menu_layout)
@@ -61,14 +71,17 @@ class Viewer(QMainWindow):
         widget = QFrame(self)
         widget.setLineWidth(2)
         widget.setLayout(group_layout)
-        widget.setObjectName('groupFrame')
-        widget.setStyleSheet("#groupFrame { border: 1px solid " +
-                             self.viewer_palette['viewer_widget_border_color'] + "; }")
+        widget.setObjectName("groupFrame")
+        widget.setStyleSheet(
+            "#groupFrame { border: 1px solid "
+            + self.viewer_palette["viewer_widget_border_color"]
+            + "; }"
+        )
 
         viewer_widget = ViewerWidget(self)
         viewer_widget.setFocusPolicy(Qt.ClickFocus)
         group_layout.addWidget(viewer_widget)
-        self.main_layout.addWidget(widget, x, y+1, row_span, column_span)
+        self.main_layout.addWidget(widget, x, y + 1, row_span, column_span)
         viewer_widget.show()
         self.viewer_widgets.append(viewer_widget)
         return viewer_widget, len(self.viewer_widgets) - 1
@@ -103,9 +116,12 @@ class Viewer(QMainWindow):
         widget = QFrame(self)
         widget.setLineWidth(2)
         widget.setLayout(group_layout)
-        widget.setObjectName('groupFrame')
-        widget.setStyleSheet("#groupFrame { border: 1px solid " +
-                             self.viewer_palette['ui_group_border_color'] + "; }")
+        widget.setObjectName("groupFrame")
+        widget.setStyleSheet(
+            "#groupFrame { border: 1px solid "
+            + self.viewer_palette["ui_group_border_color"]
+            + "; }"
+        )
         group_label = QLabel(name, widget)
         group_layout.addWidget(group_label)
         group_layout.setAlignment(group_label, Qt.AlignHCenter)
@@ -118,7 +134,7 @@ class Viewer(QMainWindow):
 
     def add_ui_button(self, text, function, color=None):
         if color == None:
-            color=self.viewer_palette['ui_element_background']
+            color = self.viewer_palette["ui_element_background"]
         button = QPushButton(text, self)
         button.clicked.connect(function)
         button.setAutoFillBackground(True)
@@ -164,8 +180,10 @@ class Viewer(QMainWindow):
         self.main_layout.setRowStretch(row, stretch)
 
     def set_background_color(self, color):
-        self.viewer_palette['viewer_background'] = color
-        self.setStyleSheet(f"background-color: {self.viewer_palette['viewer_background']}")
+        self.viewer_palette["viewer_background"] = color
+        self.setStyleSheet(
+            f"background-color: {self.viewer_palette['viewer_background']}"
+        )
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
@@ -178,8 +196,10 @@ class Viewer(QMainWindow):
         self.close_signal.emit()
 
     def save_screenshot_(self, path):
-        screenshot = QApplication.primaryScreen().grabWindow(self.central_widget.winId())
-        screenshot.save(path, 'png')
+        screenshot = QApplication.primaryScreen().grabWindow(
+            self.central_widget.winId()
+        )
+        screenshot.save(path, "png")
 
     def save_screenshot(self, path):
         self.screenshot_signal.emit(path)

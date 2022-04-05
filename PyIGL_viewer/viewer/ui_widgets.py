@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QGridLayout, QLineEdit, QLabel
+
 
 class PropertyWidget(QWidget):
     def __init__(self, text, initial_value, read_only=False):
@@ -33,6 +33,7 @@ class PropertyWidget(QWidget):
     def set_value(self, new_value):
         self.line_edit.setText(str(new_value))
 
+
 class LegendWidget(QWidget):
     def __init__(self, names, colors):
         super().__init__()
@@ -56,4 +57,3 @@ class LegendWidget(QWidget):
             legend_widget.setLayout(horizontal_layout)
             legend_layout.addWidget(legend_widget, index // 2, index % 2)
         self.setLayout(legend_layout)
-        

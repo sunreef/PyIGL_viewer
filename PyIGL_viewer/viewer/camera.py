@@ -1,6 +1,7 @@
 import numpy as np
 from .projection import perspective, lookat, normalize, magnitude, rotate
 
+
 class Camera:
     def __init__(self, size):
         self.width = size.width()
@@ -49,7 +50,9 @@ class Camera:
         norm_target_vector = normalize(target_vector)
         left_vector = np.cross(self.up, norm_target_vector)
         self.current_eye = self.eye + delta.y() * self.up - delta.x() * left_vector
-        self.current_target = self.target + delta.y() * self.up - delta.x() * left_vector
+        self.current_target = (
+            self.target + delta.y() * self.up - delta.x() * left_vector
+        )
 
     def finalize_transformation(self):
         self.eye = self.current_eye
@@ -69,4 +72,6 @@ class Camera:
         return lookat(self.current_eye, self.current_target, self.current_up)
 
     def get_projection_matrix(self):
-        return perspective(self.field_of_view, self.aspect_ratio, self.near_plane, self.far_plane)
+        return perspective(
+            self.field_of_view, self.aspect_ratio, self.near_plane, self.far_plane
+        )
