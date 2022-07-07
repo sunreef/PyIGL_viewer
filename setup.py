@@ -13,7 +13,7 @@ setup(
     author="Victor Cornillère",
     author_email="victor.cornillere@zalando.ch",
     packages=find_packages(),
-    install_requires=["PyOpenGL", "PyQt5"],
+    install_requires=["PyOpenGL", "PyQt5", "numpy"],
     include_package_data=True,
     zip_safe=False,
 )

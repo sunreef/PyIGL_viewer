@@ -361,7 +361,7 @@ class ViewerWidget(QOpenGLWidget):
         return instance_id
 
     def update_mesh_vertices_(self, core_id, vertices):
-        self.get_mesh(core_id).update_vertices(vertices)
+        self.get_mesh(core_id).update_vertices(vertices.astype(np.float32))
 
     def update_mesh_vertices(self, core_id, vertices):
         self.mesh_events.put(["update_mesh_vertices", core_id, vertices])

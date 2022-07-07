@@ -2,14 +2,8 @@ import os
 import threading
 import time
 import numpy as np
-import igl
 from PyQt5.QtWidgets import QApplication
 from PyIGL_viewer import Viewer
-
-
-script_folder = os.path.dirname(__file__)
-path_to_obj_file = os.path.join(script_folder, "assets", "cube.obj")
-vertices, faces = igl.read_triangle_mesh(path_to_obj_file)
 
 bbox_min = np.min(vertices, axis=0)
 bbox_max = np.max(vertices, axis=0)
